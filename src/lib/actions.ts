@@ -23,7 +23,7 @@ export async function getAiInsights() {
       const data = doc.data() as PedidoDemissao;
        return {
           data_desligamento: data.data_desligamento,
-          tempo_empresa: data.tempo_empresa || 'N/A',
+          tempo_empresa: String(data.tempo_empresa) || 'N/A',
           nome_completo: data.nome_completo,
           bairro: data.bairro || 'N/A',
           idade: data.idade || 0,
@@ -109,9 +109,9 @@ function excelDateToYYYYMMDD(serial: any): string {
 }
 
 // Helper to parse tenure string (e.g., "1 ANO E 7 MESES") to years
-function parseTenureToYears(tenureStr: any): number {
-    if (!tenureStr || typeof tenureStr !== 'string') {
-        return 0;
+function parseTenureToYears(tenureStr: any): number | null {
+    if (!tenureStr || typeof tenureStr !== 'string' || tenureStr.trim() === '') {
+        return null;
     }
 
     const text = tenureStr.toLowerCase().replace(/ e /g, ' ');
@@ -134,7 +134,8 @@ function parseTenureToYears(tenureStr: any): number {
         days = parseInt(dayMatch[1], 10);
     }
 
-    return years + (months / 12) + (days / 365);
+    const totalYears = years + (months / 12) + (days / 365);
+    return totalYears > 0 ? totalYears : null;
 }
 
 

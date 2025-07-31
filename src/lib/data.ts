@@ -36,17 +36,8 @@ export async function getDashboardData() {
     
     // Filter exits to only include those with valid, positive tenure data for calculation.
     const tenureData = allExits
-        .map(p => {
-            // Ensure the value is not null, undefined, or an empty string.
-            if (p.tempo_empresa === null || p.tempo_empresa === undefined || String(p.tempo_empresa).trim() === '') {
-                return null;
-            }
-            // Convert comma to dot for float parsing and then to a number.
-            const years = parseFloat(String(p.tempo_empresa).replace(',', '.'));
-            // Return the number if it's a valid number, otherwise null.
-            return isNaN(years) ? null : years;
-        })
-        .filter((y): y is number => y !== null && y > 0); // Ensure we only have positive numbers.
+        .map(p => p.tempo_empresa)
+        .filter((y): y is number => typeof y === 'number' && isFinite(y) && y > 0);
 
     const totalTenureInYears = tenureData.reduce((acc, curr) => acc + curr, 0);
     const avgTenureInYears = tenureData.length > 0 ? totalTenureInYears / tenureData.length : 0;
