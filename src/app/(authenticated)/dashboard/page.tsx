@@ -48,6 +48,7 @@ import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ExitsBySectorChart } from '@/components/exits-by-sector-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ExitReasonsChart } from '@/components/exit-reasons-chart';
 
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
@@ -264,7 +265,8 @@ export default function DashboardPage() {
     exitsByMonth,
     recentExits,
     exitsByType,
-    exitsBySector
+    exitsBySector,
+    exitReasons,
   } = data;
 
   return (
@@ -396,8 +398,8 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <Card className="col-span-4 h-full">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+              <Card className="col-span-1 h-full">
               <CardHeader>
                 <CardTitle>Desligamentos Recentes</CardTitle>
                 <CardDescription>
@@ -408,8 +410,20 @@ export default function DashboardPage() {
                 <RecentExits data={recentExits} />
               </CardContent>
             </Card>
-            <div className="col-span-4 lg:col-span-3">
-              <Card className="h-full">
+            <Card className="col-span-1 h-full">
+              <CardHeader>
+                <CardTitle>Principais Motivos de Saída</CardTitle>
+                <CardDescription>
+                  Motivos mais frequentes para desligamento.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExitReasonsChart data={exitReasons} />
+              </CardContent>
+            </Card>
+          </div>
+          <div className="grid gap-4">
+            <Card>
                 <CardHeader>
                   <CardTitle>Tipos de Desligamento</CardTitle>
                   <CardDescription>
@@ -420,7 +434,6 @@ export default function DashboardPage() {
                   <ExitTypeChart data={exitsByType} />
                 </CardContent>
               </Card>
-            </div>
           </div>
         </TabsContent>
         <TabsContent value="reports" className="space-y-4">
@@ -518,5 +531,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    

@@ -98,16 +98,15 @@ export async function getDashboardData(filters?: { year?: number, month?: number
 
 
     const exitReasons = allExits.reduce((acc, curr) => {
-        const reason = curr.motivo;
-        if (!reason) return acc;
-        const found = acc.find(item => item.reason === reason);
+        const reason = curr.motivo || "Não informado";
+        const found = acc.find(item => item.name === reason);
         if (found) {
-            found.count++;
+            found.value++;
         } else {
-            acc.push({ reason, count: 1 });
+            acc.push({ name: reason, value: 1 });
         }
         return acc;
-    }, [] as { reason: string; count: number }[]).sort((a,b) => b.count - a.count);
+    }, [] as { name: string; value: number }[]).sort((a,b) => b.value - a.value).slice(0, 7);
 
     const exitsByType = [
         { type: 'Pedido de Demissão', value: totalPedidos, fill: 'hsl(var(--chart-1))' },
@@ -149,5 +148,3 @@ export async function getDashboardData(filters?: { year?: number, month?: number
     };
   }
 }
-
-    
