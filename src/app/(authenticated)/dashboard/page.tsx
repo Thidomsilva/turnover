@@ -59,7 +59,7 @@ export default function DashboardPage() {
                 Novo Desligamento
               </Button>
             </SheetTrigger>
-            <SheetContent className="sm:max-w-2xl w-full overflow-y-auto">
+            <SheetContent className="sm:max-w-2xl overflow-y-auto">
               <SheetHeader>
                 <SheetTitle>Cadastro de Desligamento</SheetTitle>
                 <SheetDescription>
