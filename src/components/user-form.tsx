@@ -23,7 +23,7 @@ import { DialogClose } from './ui/dialog';
 
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, app } from '@/lib/firebase'; // Import app from firebase
 import { useRouter } from 'next/navigation';
 
 
@@ -45,7 +45,7 @@ export default function UserForm() {
   async function onSubmit(data: z.infer<typeof userFormSchema>) {
     startTransition(async () => {
       try {
-        const auth = getAuth();
+        const auth = getAuth(app); // Pass the app instance
         const { name, email, password } = data;
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -53,7 +53,7 @@ export default function UserForm() {
 
         await updateProfile(user, { displayName: name });
 
-        const role = email === 'thiago@sagacy.com.br' ? 'Administrador' : 'Usuário';
+        const role = email.toLowerCase() === 'thiago@sagacy.com.br' ? 'Administrador' : 'Usuário';
 
         await setDoc(doc(db, 'users', user.uid), {
             uid: user.uid,
@@ -67,8 +67,8 @@ export default function UserForm() {
             description: "Usuário criado com sucesso.",
         });
         form.reset();
+        router.refresh(); // Refresh the page to show the new user
         closeRef.current?.click();
-        router.refresh(); 
 
       } catch (error: any) {
         console.error("Error creating user:", error);
