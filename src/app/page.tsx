@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
-import { Icons } from "@/components/icons"
 
 export default function LoginPage() {
   return (
@@ -12,9 +11,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md mx-auto">
         <Card>
           <CardHeader className="space-y-1 text-center">
-            <div className="flex flex-col justify-center items-center gap-2 mb-2">
-                <Icons.logo className="h-12 w-12" />
-                <CardTitle className="text-2xl pt-4">Gestão de Turnover</CardTitle>
+            <div className="flex flex-col justify-center items-center gap-4 mb-2">
+                <Image src="https://firebasestudio.ai/api/v1/files/db7383a8-4228-40bb-974a-a1b72e597143/view" alt="Logomarca" width={200} height={100} />
             </div>
             <CardDescription>
               Entre com seu email e senha para acessar o painel
