@@ -15,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(30 58 138)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M15 13l-3-3-3 3' /><path d='M12 10V21' /><path d='M21 3h-6' /><path d='M21 7h-6' /><path d='M9 3H3' /><path d='M9 7H3' /></svg>" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
