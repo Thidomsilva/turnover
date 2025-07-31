@@ -87,10 +87,7 @@ export default function DashboardPage() {
       const pedidosSheetName = sheetNames.find(name => name.toLowerCase().trim() === 'pedido demissao');
       const demitidosSheetName = sheetNames.find(name => name.toLowerCase().trim() === 'demissao empresa');
 
-      const pedidosSheet = pedidosSheetName ? workbook.Sheets[pedidosSheetName] : undefined;
-      const demitidosSheet = demitidosSheetName ? workbook.Sheets[demitidosSheetName] : undefined;
-
-      if (!pedidosSheet && !demitidosSheet) {
+      if (!pedidosSheetName && !demitidosSheetName) {
         toast({
             title: "Erro de Importação",
             description: "A planilha deve conter as abas 'pedido demissao' e/ou 'demissao empresa'. Verifique os nomes das abas e tente novamente.",
@@ -99,8 +96,8 @@ export default function DashboardPage() {
         return;
       }
       
-      const pedidosData = pedidosSheet ? XLSX.utils.sheet_to_json(pedidosSheet) : [];
-      const demitidosData = demitidosSheet ? XLSX.utils.sheet_to_json(demitidosSheet) : [];
+      const pedidosData = pedidosSheetName ? XLSX.utils.sheet_to_json(workbook.Sheets[pedidosSheetName]) : [];
+      const demitidosData = demitidosSheetName ? XLSX.utils.sheet_to_json(workbook.Sheets[demitidosSheetName]) : [];
 
       const allData = [
         ...pedidosData.map((row: any) => ({ ...row, tipo: 'pedido_demissao' })),
@@ -276,7 +273,7 @@ export default function DashboardPage() {
                   <CardDescription>
                     Comparativo entre pedidos e demissões.
                   </CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent>
                   <ExitTypeChart data={exitsByType} />
                 </CardContent>
