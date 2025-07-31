@@ -107,16 +107,12 @@ function excelDateToYYYYMMDD(serial: any): string {
 }
 
 function parseTenureToDays(tenure: any): number | null {
-    if (tenure === null || tenure === undefined) {
+    if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
         return null;
     }
 
     const tenureStr = String(tenure).toUpperCase().trim();
-
-    if (tenureStr === '') {
-        return null;
-    }
-
+    
     let anos = 0;
     let meses = 0;
     let dias = 0;
@@ -126,7 +122,7 @@ function parseTenureToDays(tenure: any): number | null {
         anos = parseInt(anoMatch[1], 10);
     }
 
-    const mesMatch = tenureStr.match(/(\d+)\s*M[ÊE]S(ES)?/);
+    const mesMatch = tenureStr.match(/(\d+)\s*M[ÊE]S(?:ES)?/);
     if (mesMatch) {
         meses = parseInt(mesMatch[1], 10);
     }
@@ -139,6 +135,12 @@ function parseTenureToDays(tenure: any): number | null {
     const totalDias = (anos * 365) + (meses * 30) + dias;
 
     if (totalDias === 0) {
+        // Handle cases like "0 dias" or if no match was found.
+        // Check if the original string was just a number.
+        const numericValue = parseFloat(tenureStr);
+        if (!isNaN(numericValue)) {
+            return numericValue; // Assume it's already in days if it's just a number.
+        }
         return null;
     }
 
