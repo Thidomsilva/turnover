@@ -18,7 +18,7 @@ import { ExitTypeChart } from '@/components/exit-type-chart';
 import { getDashboardData } from '@/lib/data';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2 } from 'lucide-react';
+import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2, BarChartBig } from 'lucide-react';
 import ExitForm from '@/components/exit-form';
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
@@ -49,11 +49,40 @@ export default function DashboardPage() {
     fileInputRef.current?.click();
   };
 
-  if (loading || !data) {
+  if (loading) {
     return (
         <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+    );
+  }
+
+  if (!data || data.totalExits === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center p-4 border-2 border-dashed rounded-lg">
+          <BarChartBig className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Bem-vindo à Gestão de Turnover!</h2>
+          <p className="text-muted-foreground mb-6">Ainda não há dados de desligamento para exibir.</p>
+           <Sheet>
+            <SheetTrigger asChild>
+              <Button size="lg">
+                <PlusCircle className="mr-2 h-5 w-5" />
+                Registrar Primeiro Desligamento
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="sm:max-w-2xl overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Cadastro de Desligamento</SheetTitle>
+                <SheetDescription>
+                  Preencha os campos abaixo para registrar um novo desligamento.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="py-4">
+                <ExitForm />
+              </div>
+            </SheetContent>
+          </Sheet>
+      </div>
     );
   }
 
