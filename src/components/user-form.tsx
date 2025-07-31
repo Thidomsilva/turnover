@@ -17,49 +17,28 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { userFormSchema } from '@/lib/schemas';
-import { addUserAction, getUsersAction } from '@/lib/actions';
+import { addUserAction } from '@/lib/actions';
 import { DialogClose } from './ui/dialog';
-
-const extendedUserFormSchema = userFormSchema.extend({
-  role: z.enum(['Administrador', 'Usuário']),
-});
 
 export default function UserForm() {
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
   const closeRef = React.useRef<HTMLButtonElement>(null);
-  const [isFirstUser, setIsFirstUser] = useState(false);
 
-  useEffect(() => {
-    async function checkFirstUser() {
-      const users = await getUsersAction();
-      setIsFirstUser(users.length === 0);
-    }
-    checkFirstUser();
-  }, []);
-
-
-  const form = useForm<z.infer<typeof extendedUserFormSchema>>({
-    resolver: zodResolver(extendedUserFormSchema),
+  const form = useForm<z.infer<typeof userFormSchema>>({
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       name: '',
       email: '',
       password: '',
-      role: 'Usuário',
     },
   });
 
-  function onSubmit(data: z.infer<typeof extendedUserFormSchema>) {
-    
-    let role: 'Administrador' | 'Usuário' = 'Usuário';
-    if (isFirstUser || data.email === 'thiago@sagacy.com.br') {
-        role = 'Administrador';
-    }
-
+  function onSubmit(data: z.infer<typeof userFormSchema>) {
     startTransition(async () => {
-        const result = await addUserAction({ ...data, role });
+        const result = await addUserAction(data);
         if (result.success) {
             toast({
                 title: "Sucesso!",

@@ -266,8 +266,8 @@ const addUserFormSchema = serverUserFormSchema.extend({
 });
 
 
-export async function addUserAction(data: z.infer<typeof addUserFormSchema>) {
-    const validatedFields = addUserFormSchema.safeParse(data);
+export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) {
+    const validatedFields = serverUserFormSchema.safeParse(data);
 
     if (!validatedFields.success) {
         return {
@@ -276,7 +276,15 @@ export async function addUserAction(data: z.infer<typeof addUserFormSchema>) {
         };
     }
 
-    const { name, email, password, role } = validatedFields.data;
+    const { name, email, password } = validatedFields.data;
+    
+    // Server-side logic to determine the role
+    const users = await getUsersAction();
+    let role: 'Administrador' | 'Usuário' = 'Usuário';
+    if (users.length === 0 || email === 'thiago@sagacy.com.br') {
+        role = 'Administrador';
+    }
+
 
     try {
         const adminApp = getAdminApp();
