@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { db } from './firebase';
 import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, isValid } from 'date-fns';
 
 export async function getAiInsights() {
   try {
@@ -97,26 +97,35 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
 
 function excelDateToYYYYMMDD(serial: any): string | null {
     if (!serial) return null;
+    
+    // If it's already a valid date string (e.g. YYYY-MM-DD), just return it.
+    if (typeof serial === 'string' && isValid(parseISO(serial))) {
+        return serial.split('T')[0];
+    }
+    
+    // Handle JS-style dates that might be passed as strings
     if (typeof serial === 'string') {
-        // Handle cases like 'YYYY-MM-DD' or 'MM/DD/YYYY'
-        if (/^\d{4}-\d{2}-\d{2}$/.test(serial)) return serial;
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(serial)) {
-            const [month, day, year] = serial.split('/');
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        const d = new Date(serial);
+        if (isValid(d)) {
+            return d.toISOString().split('T')[0];
         }
     }
-    if (typeof serial !== 'number' || isNaN(serial)) {
-      return null;
+
+    // Handle Excel serial number dates
+    if (typeof serial === 'number' && isFinite(serial)) {
+        const utc_days = Math.floor(serial - 25569);
+        const utc_value = utc_days * 86400;
+        const date_info = new Date(utc_value * 1000);
+
+        if (isValid(date_info)) {
+            const year = date_info.getUTCFullYear();
+            const month = String(date_info.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date_info.getUTCDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
     }
-    const utc_days = Math.floor(serial - 25569);
-    const utc_value = utc_days * 86400;
-    const date_info = new Date(utc_value * 1000);
-
-    const year = date_info.getUTCFullYear();
-    const month = String(date_info.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date_info.getUTCDate()).padStart(2, '0');
-
-    return `${year}-${month}-${day}`;
+    
+    return null;
 }
 
 export async function importExitsAction(data: any[]) {
@@ -139,84 +148,56 @@ export async function importExitsAction(data: any[]) {
                 }
             }
             
-            item.nome_completo = String(item['nomecompleto'] || '').trim();
-            if (!item.nome_completo) continue;
+            const nomeCompleto = String(item['nomecompleto'] || '').trim();
+            if (!nomeCompleto) continue;
 
             const admissionDateStr = excelDateToYYYYMMDD(item['dataadmissao']);
             const exitDateStr = excelDateToYYYYMMDD(item['datadesligamento']);
 
             if (!admissionDateStr || !exitDateStr) {
-                errors.push(`Registro '${item.nome_completo}' ignorado: data de admissão ou desligamento inválida.`);
+                errors.push(`Registro '${nomeCompleto}' ignorado: data de admissão ou desligamento inválida ou ausente.`);
                 continue;
             }
             
             const admissionDate = parseISO(admissionDateStr);
             const exitDate = parseISO(exitDateStr);
 
-            if (exitDate <= admissionDate) {
-                 errors.push(`Registro '${item.nome_completo}' ignorado: data de desligamento deve ser posterior à de admissão.`);
+            if (!isValid(admissionDate) || !isValid(exitDate) || exitDate <= admissionDate) {
+                 errors.push(`Registro '${nomeCompleto}' ignorado: Datas inválidas ou data de desligamento anterior à de admissão.`);
                 continue;
             }
             
             const tenureInDays = differenceInDays(exitDate, admissionDate);
 
-            item.data_admissao = admissionDateStr;
-            item.data_desligamento = exitDateStr;
-            item.tempo_empresa = tenureInDays;
-            
-            item.tipo = String(item['tipo'] || '').trim();
-            item.lider = String(item['lider'] || '').trim();
-            item.sexo = String(item['sexo'] || '').trim();
-            item.idade = Number(item['idade']) || null;
-            item.motivo = String(item['motivo'] || item['motivodesligamento'] || '').trim();
-            
-            if (item.tipo === 'pedido_demissao') {
-                item.bairro = String(item['bairro'] || '').trim();
-                item.cargo = String(item['cargo'] || '').trim();
-                item.setor = String(item['setor'] || '').trim();
-                item.trabalhou_em_industria = String(item['trabalhouemindustria'] || '').trim();
-                item.nivel_escolar = String(item['nivelescolar'] || '').trim();
-                item.deslocamento = String(item['deslocamento'] || '').trim();
-                item.nota_lideranca = Number(item['notalideranca']) || null;
-                item.obs_lideranca = String(item['obslideranca'] || '').trim();
-                item.nota_rh = Number(item['notarh']) || null;
-                item.obs_rh = String(item['obsrh'] || '').trim();
-                item.nota_empresa = Number(item['notaempresa']) || null;
-                item.comentarios = String(item['comentarios'] || '').trim();
-                item.filtro = String(item['filtro'] || '').trim();
-            } else if (item.tipo === 'demissao_empresa') {
-                item.turno = String(item['turno'] || '').trim();
-            }
-            
-            const docRef = doc(exitsCollection);
             // We need to clean up the object to avoid saving undefined/extra fields
             const dataToSave = {
-                nome_completo: item.nome_completo,
-                tipo: item.tipo,
-                data_admissao: item.data_admissao,
-                data_desligamento: item.data_desligamento,
-                tempo_empresa: item.tempo_empresa,
-                lider: item.lider,
-                sexo: item.sexo,
-                idade: item.idade,
-                motivo: item.motivo,
-                bairro: item.bairro,
-                cargo: item.cargo,
-                setor: item.setor,
-                trabalhou_em_industria: item.trabalhou_em_industria,
-                nivel_escolar: item.nivel_escolar,
-                deslocamento: item.deslocamento,
-                nota_lideranca: item.nota_lideranca,
-                obs_lideranca: item.obs_lideranca,
-                nota_rh: item.nota_rh,
-                obs_rh: item.obs_rh,
-                nota_empresa: item.nota_empresa,
-                comentarios: item.comentarios,
-                filtro: item.filtro,
-                turno: item.turno,
+                nome_completo: nomeCompleto,
+                data_admissao: admissionDateStr,
+                data_desligamento: exitDateStr,
+                tempo_empresa: tenureInDays, // THIS IS THE CRITICAL FIX
+                tipo: String(item['tipo'] || '').trim() || null,
+                lider: String(item['lider'] || '').trim() || null,
+                sexo: String(item['sexo'] || '').trim() || null,
+                idade: Number(item['idade']) || null,
+                motivo: String(item['motivo'] || item['motivodesligamento'] || '').trim() || null,
+                bairro: String(item['bairro'] || '').trim() || null,
+                cargo: String(item['cargo'] || '').trim() || null,
+                setor: String(item['setor'] || '').trim() || null,
+                trabalhou_em_industria: String(item['trabalhouemindustria'] || '').trim() || null,
+                nivel_escolar: String(item['nivelescolar'] || '').trim() || null,
+                deslocamento: String(item['deslocamento'] || '').trim() || null,
+                nota_lideranca: Number(item['notalideranca']) || null,
+                obs_lideranca: String(item['obslideranca'] || '').trim() || null,
+                nota_rh: Number(item['notarh']) || null,
+                obs_rh: String(item['obsrh'] || '').trim() || null,
+                nota_empresa: Number(item['notaempresa']) || null,
+                comentarios: String(item['comentarios'] || '').trim() || null,
+                filtro: String(item['filtro'] || '').trim() || null,
+                turno: String(item['turno'] || '').trim() || null,
                 createdAt: serverTimestamp()
             };
 
+            const docRef = doc(exitsCollection);
             batch.set(docRef, dataToSave);
             count++;
 
@@ -226,9 +207,13 @@ export async function importExitsAction(data: any[]) {
         }
     }
     
-    if (count === 0) {
+    if (count === 0 && errors.length > 0) {
+        return { success: false, message: `Nenhum registro importado. ${errors.join(' ')}` };
+    }
+     if (count === 0) {
         return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique se as colunas "Nome Completo", "Data Admissao" e "Data Desligamento" estão preenchidas corretamente.' };
     }
+
 
     try {
         await batch.commit();

@@ -1,6 +1,6 @@
 
 import { type ExitData, type PedidoDemissao } from '@/lib/types';
-import { format, subMonths, parseISO } from 'date-fns';
+import { format, subMonths, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
@@ -52,12 +52,12 @@ export async function getDashboardData() {
     }).reverse();
 
     allExits.forEach(exit => {
-      if (!exit.data_desligamento || typeof exit.data_desligamento !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(exit.data_desligamento)) {
-          return;
-      }
+       if (!exit.data_desligamento) return;
       
       try {
           const exitDate = parseISO(exit.data_desligamento);
+          if (!isValid(exitDate)) return;
+
           const exitMonth = format(exitDate, 'MMM', { locale: ptBR });
           const monthData = exitsByMonth.find(m => m.name === exitMonth);
           if (monthData) {
