@@ -44,7 +44,7 @@ export async function getDashboardData() {
         : 0;
     
     // Convert average tenure from days to months for display
-    const avgTenure = Math.round(avgTenureInDays / 30.44);
+    const avgTenure = Math.round(avgTenureInDays / 30);
 
     const exitsByMonth = Array.from({ length: 6 }).map((_, i) => {
       const d = subMonths(new Date(), i);
@@ -52,12 +52,10 @@ export async function getDashboardData() {
     }).reverse();
 
     allExits.forEach(exit => {
-       if (!exit.data_desligamento) return;
+       if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return;
       
       try {
           const exitDate = parseISO(exit.data_desligamento);
-          if (!isValid(exitDate)) return;
-
           const exitMonth = format(exitDate, 'MMM', { locale: ptBR });
           const monthData = exitsByMonth.find(m => m.name === exitMonth);
           if (monthData) {

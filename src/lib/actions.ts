@@ -98,12 +98,10 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
 function excelDateToYYYYMMDD(serial: any): string | null {
     if (!serial) return null;
     
-    // If it's already a valid date string (e.g. YYYY-MM-DD), just return it.
     if (typeof serial === 'string' && isValid(parseISO(serial))) {
         return serial.split('T')[0];
     }
     
-    // Handle JS-style dates that might be passed as strings
     if (typeof serial === 'string') {
         const d = new Date(serial);
         if (isValid(d)) {
@@ -111,7 +109,6 @@ function excelDateToYYYYMMDD(serial: any): string | null {
         }
     }
 
-    // Handle Excel serial number dates
     if (typeof serial === 'number' && isFinite(serial)) {
         const utc_days = Math.floor(serial - 25569);
         const utc_value = utc_days * 86400;
@@ -151,30 +148,13 @@ export async function importExitsAction(data: any[]) {
             const nomeCompleto = String(item['nomecompleto'] || '').trim();
             if (!nomeCompleto) continue;
 
-            const admissionDateStr = excelDateToYYYYMMDD(item['dataadmissao']);
-            const exitDateStr = excelDateToYYYYMMDD(item['datadesligamento']);
-
-            if (!admissionDateStr || !exitDateStr) {
-                errors.push(`Registro '${nomeCompleto}' ignorado: data de admissão ou desligamento inválida ou ausente.`);
-                continue;
-            }
+            const tenureInDays = Number(item['tempodeempresa']);
             
-            const admissionDate = parseISO(admissionDateStr);
-            const exitDate = parseISO(exitDateStr);
-
-            if (!isValid(admissionDate) || !isValid(exitDate) || exitDate <= admissionDate) {
-                 errors.push(`Registro '${nomeCompleto}' ignorado: Datas inválidas ou data de desligamento anterior à de admissão.`);
-                continue;
-            }
-            
-            const tenureInDays = differenceInDays(exitDate, admissionDate);
-
-            // We need to clean up the object to avoid saving undefined/extra fields
             const dataToSave = {
                 nome_completo: nomeCompleto,
-                data_admissao: admissionDateStr,
-                data_desligamento: exitDateStr,
-                tempo_empresa: tenureInDays, // THIS IS THE CRITICAL FIX
+                data_admissao: excelDateToYYYYMMDD(item['dataadmissao']) || null,
+                data_desligamento: excelDateToYYYYMMDD(item['datadesligamento']) || null,
+                tempo_empresa: !isNaN(tenureInDays) ? tenureInDays : null,
                 tipo: String(item['tipo'] || '').trim() || null,
                 lider: String(item['lider'] || '').trim() || null,
                 sexo: String(item['sexo'] || '').trim() || null,
@@ -211,7 +191,7 @@ export async function importExitsAction(data: any[]) {
         return { success: false, message: `Nenhum registro importado. ${errors.join(' ')}` };
     }
      if (count === 0) {
-        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique se as colunas "Nome Completo", "Data Admissao" e "Data Desligamento" estão preenchidas corretamente.' };
+        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique se as colunas "Nome Completo" e "Tempo de Empresa" estão preenchidas corretamente.' };
     }
 
 
