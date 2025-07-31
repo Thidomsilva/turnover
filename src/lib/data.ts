@@ -22,7 +22,7 @@ export async function getDashboardData() {
   // Filter for 'pedido_demissao' to calculate tenure
   const pedidos = allExits.filter(d => d.tipo === 'pedido_demissao') as PedidoDemissao[];
   const avgTenureInYears = pedidos.reduce((acc, curr) => {
-    // Ensure tempo_empresa exists and is a valid number
+    // Ensure tempo_empresa exists and is a valid number, handling both '.' and ',' as decimal separators
     if (curr.tempo_empresa === null || curr.tempo_empresa === undefined) return acc;
     const years = parseFloat(String(curr.tempo_empresa).replace(',', '.'));
     return acc + (isNaN(years) ? 0 : years);
