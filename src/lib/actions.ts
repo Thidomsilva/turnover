@@ -99,7 +99,6 @@ export async function importExitsAction(data: any[]) {
     const docRef = doc(exitsCollection); // Create a new doc with a random ID
      batch.set(docRef, {
       ...item,
-      createdAt: serverTimestamp(),
     });
     count++;
   }
