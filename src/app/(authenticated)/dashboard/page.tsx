@@ -19,11 +19,11 @@ import { ExitTypeChart } from '@/components/exit-type-chart';
 import { getDashboardData } from '@/lib/data';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2, BarChartBig } from 'lucide-react';
+import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2, BarChartBig, Trash2 } from 'lucide-react';
 import ExitForm from '@/components/exit-form';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
-import { importExitsAction } from '@/lib/actions';
+import { importExitsAction, clearAllExitsAction } from '@/lib/actions';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { type ExitData } from '@/lib/types';
 import { format, parse, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -89,7 +101,7 @@ export default function DashboardPage() {
         return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
       }
 
-      const pedidosSheetName = sheetNames.find(name => normalizeString(name) === 'pedido de demissao');
+      const pedidosSheetName = sheetNames.find(name => normalizeString(name) === 'pedido demissao');
       const demitidosSheetName = sheetNames.find(name => normalizeString(name) === 'demissao empresa');
 
       if (!pedidosSheetName && !demitidosSheetName) {
@@ -153,6 +165,25 @@ export default function DashboardPage() {
     setMonthlyExits(exitsInMonth);
     setIsModalOpen(true);
   };
+
+  const handleClearData = () => {
+    startTransition(async () => {
+        const result = await clearAllExitsAction();
+        if (result.success) {
+            toast({
+                title: "Sucesso!",
+                description: result.message,
+            });
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            toast({
+                title: "Erro",
+                description: result.message || "Ocorreu um erro ao limpar os dados.",
+                variant: 'destructive',
+            });
+        }
+    });
+  }
 
   if (loading) {
     return (
@@ -242,6 +273,28 @@ export default function DashboardPage() {
               </div>
             </SheetContent>
           </Sheet>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+               <Button variant="destructive" size="sm" disabled={isPending}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Limpar Dados
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Essa ação não pode ser desfeita. Isso excluirá permanentemente todos os dados de desligamento do banco de dados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearData} disabled={isPending}>
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">

@@ -181,3 +181,33 @@ export async function importExitsAction(data: any[]) {
         };
     }
 }
+
+
+export async function clearAllExitsAction() {
+    try {
+        const exitsCollectionRef = collection(db, 'exits');
+        const querySnapshot = await getDocs(exitsCollectionRef);
+
+        if (querySnapshot.empty) {
+            return { success: true, message: "O banco de dados já está vazio." };
+        }
+
+        const batch = writeBatch(db);
+        querySnapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+
+        revalidatePath('/dashboard');
+
+        return { success: true, message: "Todos os dados de desligamento foram removidos com sucesso." };
+
+    } catch (error: any) {
+        console.error("Error clearing collection: ", error);
+        return {
+             success: false,
+             message: error.message || "Ocorreu um erro ao limpar o banco de dados.",
+        }
+    }
+}
