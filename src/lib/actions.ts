@@ -56,6 +56,7 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
 
     if (!validatedFields.success) {
         return {
+            success: false,
             errors: validatedFields.error.flatten().fieldErrors,
             message: "Campos inválidos. Falha ao registrar desligamento.",
         };
@@ -75,11 +76,11 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
             message: "Desligamento registrado com sucesso.",
         };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error adding document: ", error);
         return {
              success: false,
-             message: "Ocorreu um erro ao salvar no banco de dados.",
+             message: error.message || "Ocorreu um erro ao salvar no banco de dados.",
         }
     }
 }

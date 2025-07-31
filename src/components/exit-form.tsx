@@ -62,6 +62,8 @@ export default function ExitForm() {
             });
             form.reset();
             closeRef.current?.click();
+            // This is a simple way to refresh the page and show the new data.
+            window.location.reload();
         } else {
              toast({
                 title: "Erro",
