@@ -330,8 +330,8 @@ export default function DashboardPage() {
             <StatCard title="Demissões pela Empresa" value={totalEmpresa.toString()} description="Iniciados pela empresa" icon="UserX" />
             <StatCard title="Tempo Médio de Casa" value={`${avgTenure} meses`} description="Duração média no cargo" icon="Clock" />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
+          <div className="grid grid-cols-1 gap-4">
+            <Card>
               <CardHeader>
                 <CardTitle>Visão Geral de Rotatividade</CardTitle>
                 <CardDescription>Clique em uma barra para ver detalhes do mês.</CardDescription>
@@ -340,21 +340,8 @@ export default function DashboardPage() {
                 <OverviewChart data={exitsByMonth} onBarClick={handleBarClick} />
               </CardContent>
             </Card>
-            <div className="col-span-4 lg:col-span-3 space-y-4 flex flex-col">
-              <Card className="flex-grow">
-                <CardHeader>
-                  <CardTitle>Tipos de Desligamento</CardTitle>
-                  <CardDescription>
-                    Comparativo entre pedidos e demissões.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ExitTypeChart data={exitsByType} />
-                </CardContent>
-              </Card>
             </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <Card className="col-span-4 h-full">
               <CardHeader>
                 <CardTitle>Desligamentos Recentes</CardTitle>
@@ -367,6 +354,17 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
             <div className="col-span-4 lg:col-span-3">
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>Tipos de Desligamento</CardTitle>
+                  <CardDescription>
+                    Comparativo entre pedidos e demissões.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ExitTypeChart data={exitsByType} />
+                </CardContent>
+              </Card>
             </div>
           </div>
         </TabsContent>
