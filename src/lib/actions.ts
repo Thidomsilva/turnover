@@ -295,7 +295,7 @@ export async function addUserAction(data: z.infer<typeof userFormSchema>) {
 
     } catch (error: any) {
         console.error("Error creating user:", error);
-         if (error.message.includes('Firebase admin initialization failed')) {
+         if (error.message.includes('A inicialização do Firebase Admin falhou')) {
             return {
                 success: false,
                 message: 'Erro: A funcionalidade de administrador não está configurada neste ambiente.',

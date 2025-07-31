@@ -1,31 +1,31 @@
 
 import * as admin from 'firebase-admin';
 
-// We will initialize the app on demand
 let adminApp: admin.app.App;
 
 function initializeFirebaseAdmin() {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    throw new Error('A variável de ambiente FIREBASE_SERVICE_ACCOUNT_KEY não está definida.');
+  }
+
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+
   if (!admin.apps.length) {
-    // When running in a Google Cloud environment, the SDK can automatically
-    // discover the service account credentials.
-    try {
-      admin.initializeApp();
-    } catch (error: any) {
-      console.error('Firebase admin initialization error', error.stack);
-      // If auto-discovery fails, it might be because the service account key is needed.
-      // We will re-throw a more user-friendly error.
-      throw new Error('Firebase admin initialization failed. This might be due to missing service account credentials in the environment.');
-    }
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
   }
   adminApp = admin.app();
 }
 
-// Lazy initialization
-const getAdminApp = () => {
+export const getAdminApp = () => {
   if (!adminApp) {
-    initializeFirebaseAdmin();
+    try {
+      initializeFirebaseAdmin();
+    } catch (error: any) {
+        // We throw a more user-friendly error to be caught in the action.
+        throw new Error(`A inicialização do Firebase Admin falhou. A chave de serviço pode estar faltando ou ser inválida. Detalhes: ${error.message}`);
+    }
   }
   return adminApp;
-}
-
-export { getAdminApp };
+};
