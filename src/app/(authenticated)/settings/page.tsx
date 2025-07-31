@@ -9,16 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { UserPlus } from "lucide-react";
-import UserForm from "@/components/user-form";
 import { getUsersAction } from "@/lib/actions";
 
 
@@ -39,26 +29,9 @@ export default async function SettingsPage() {
             <div>
               <CardTitle>Gerenciamento de Usuários</CardTitle>
               <CardDescription>
-                Adicione, edite ou remova usuários da plataforma.
+                Usuários com acesso à plataforma.
               </CardDescription>
             </div>
-             <Dialog>
-                <DialogTrigger asChild>
-                    <Button>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Adicionar Usuário
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                    <DialogTitle>Adicionar Novo Usuário</DialogTitle>
-                    <DialogDescription>
-                        Preencha os dados abaixo para criar um novo acesso.
-                    </DialogDescription>
-                    </DialogHeader>
-                    <UserForm />
-                </DialogContent>
-            </Dialog>
           </div>
         </CardHeader>
         <CardContent>

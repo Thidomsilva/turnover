@@ -3,14 +3,12 @@
 
 import { generateExitInsights, type ExitDataInput } from '@/ai/flows/generate-exit-insights';
 import type { PedidoDemissao, User } from './types';
-import { exitFormSchema, userFormSchema as serverUserFormSchema } from './schemas';
+import { exitFormSchema } from './schemas';
 import { z } from 'zod';
 import { db } from './firebase';
 import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc, setDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
-import { getAuth } from 'firebase-admin/auth';
-import { getAdminApp } from './firebase-admin';
 
 export async function getAiInsights() {
   try {
@@ -261,68 +259,6 @@ export async function clearAllExitsAction() {
     }
 }
 
-export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) {
-    try {
-        // This will throw an error if the admin app isn't initialized correctly.
-        const adminApp = getAdminApp(); 
-        const auth = getAuth(adminApp);
-        
-        const validatedFields = serverUserFormSchema.safeParse(data);
-
-        if (!validatedFields.success) {
-            return {
-                success: false,
-                message: "Campos inválidos. Falha ao adicionar usuário.",
-            };
-        }
-
-        const { name, email, password } = validatedFields.data;
-
-        let role: 'Administrador' | 'Usuário' = 'Usuário';
-        const users = await getUsersAction();
-        if (users.length === 0 || email === 'thiago@sagacy.com.br') {
-            role = 'Administrador';
-        }
-
-        const userRecord = await auth.createUser({
-            email,
-            password,
-            displayName: name,
-        });
-
-        const userDocRef = doc(db, "users", userRecord.uid);
-        await setDoc(userDocRef, {
-            uid: userRecord.uid,
-            name,
-            email,
-            role,
-        });
-
-        revalidatePath('/settings');
-
-        return {
-            success: true,
-            message: "Usuário adicionado com sucesso.",
-        };
-
-    } catch (error: any) {
-        console.error("Error adding user: ", error);
-        
-        let errorMessage = "Ocorreu um erro desconhecido.";
-        if (error.code === 'auth/email-already-exists') {
-            errorMessage = "Este e-mail já está em uso por outro usuário.";
-        } else if (error.message.includes('Firebase admin initialization failed')) {
-            errorMessage = "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando.";
-        } else {
-             errorMessage = error.message || "Ocorreu um erro desconhecido ao adicionar o usuário."
-        }
-        
-        return {
-             success: false,
-             message: errorMessage,
-        }
-    }
-}
 
 export async function getUsersAction(): Promise<User[]> {
   try {
