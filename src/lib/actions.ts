@@ -261,11 +261,6 @@ export async function clearAllExitsAction() {
     }
 }
 
-const addUserFormSchema = serverUserFormSchema.extend({
-  role: z.enum(['Administrador', 'Usuário']),
-});
-
-
 export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) {
     const validatedFields = serverUserFormSchema.safeParse(data);
 
@@ -277,18 +272,17 @@ export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) 
     }
 
     const { name, email, password } = validatedFields.data;
-    
-    // Server-side logic to determine the role
-    const users = await getUsersAction();
-    let role: 'Administrador' | 'Usuário' = 'Usuário';
-    if (users.length === 0 || email === 'thiago@sagacy.com.br') {
-        role = 'Administrador';
-    }
-
 
     try {
         const adminApp = getAdminApp();
         const auth = getAuth(adminApp);
+        
+        // Determine role based on business logic
+        const users = await getUsersAction();
+        let role: 'Administrador' | 'Usuário' = 'Usuário';
+        if (users.length === 0 || email === 'thiago@sagacy.com.br') {
+            role = 'Administrador';
+        }
 
         // Create user in Firebase Authentication
         const userRecord = await auth.createUser({
@@ -317,8 +311,10 @@ export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) 
         console.error("Error adding user: ", error);
         
         let errorMessage = "Ocorreu um erro desconhecido.";
-        if (error.code === 'auth/email-already-exists') {
+         if (error.code === 'auth/email-already-exists') {
             errorMessage = "Este e-mail já está em uso por outro usuário.";
+        } else if (error.message.includes('Firebase admin initialization failed')) {
+            errorMessage = "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando.";
         } else if (error.message) {
             errorMessage = error.message;
         }

@@ -6,19 +6,15 @@ let adminApp: admin.app.App;
 
 function initializeFirebaseAdmin() {
   if (!admin.apps.length) {
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-
-    if (!serviceAccount) {
-      throw new Error('Missing FIREBASE_SERVICE_ACCOUNT_KEY environment variable. Please configure it to use admin features.');
-    }
-
+    // When running in a Google Cloud environment, the SDK can automatically
+    // discover the service account credentials.
     try {
-      admin.initializeApp({
-        credential: admin.credential.cert(JSON.parse(serviceAccount)),
-      });
+      admin.initializeApp();
     } catch (error: any) {
       console.error('Firebase admin initialization error', error.stack);
-      throw new Error('Firebase admin initialization failed.');
+      // If auto-discovery fails, it might be because the service account key is needed.
+      // We will re-throw a more user-friendly error.
+      throw new Error('Firebase admin initialization failed. This might be due to missing service account credentials in the environment.');
     }
   }
   adminApp = admin.app();
