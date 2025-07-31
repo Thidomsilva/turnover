@@ -8,7 +8,6 @@ import { db } from './firebase';
 export async function getDashboardData() {
   try {
     const exitsCollection = collection(db, 'exits');
-    // Order by 'data_desligamento' to get recent exits first
     const querySnapshot = await getDocs(query(exitsCollection, orderBy('data_desligamento', 'desc')));
     
     const allExits: ExitData[] = querySnapshot.docs.map(doc => ({
@@ -34,14 +33,15 @@ export async function getDashboardData() {
     const totalPedidos = allExits.filter(d => d.tipo === 'pedido_demissao').length;
     const totalEmpresa = allExits.filter(d => d.tipo === 'demissao_empresa').length;
     
-    // Filter exits to only include those with valid, positive tenure data for calculation.
-    const tenureData = allExits
+    // The `tempo_empresa` is now stored in months.
+    const tenureDataInMonths = allExits
         .map(p => p.tempo_empresa)
-        .filter((y): y is number => typeof y === 'number' && isFinite(y) && y > 0);
+        .filter((months): months is number => typeof months === 'number' && isFinite(months) && months > 0);
 
-    const totalTenureInYears = tenureData.reduce((acc, curr) => acc + curr, 0);
-    const avgTenureInYears = tenureData.length > 0 ? totalTenureInYears / tenureData.length : 0;
-    const avgTenure = Math.round(avgTenureInYears * 12); // Convert to months and round it.
+    const totalTenureInMonths = tenureDataInMonths.reduce((acc, curr) => acc + curr, 0);
+    const avgTenure = tenureDataInMonths.length > 0 
+        ? Math.round(totalTenureInMonths / tenureDataInMonths.length) 
+        : 0;
 
 
     // Initialize the last 6 months for the overview chart
@@ -57,7 +57,6 @@ export async function getDashboardData() {
       }
       
       try {
-          // Using parseISO ensures the date is parsed correctly as local time
           const exitDate = parseISO(exit.data_desligamento);
           const exitMonth = format(exitDate, 'MMM', { locale: ptBR });
           const monthData = exitsByMonth.find(m => m.name === exitMonth);

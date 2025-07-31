@@ -86,17 +86,14 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
     }
 }
 
-// Helper to convert Excel serial date to YYYY-MM-DD
 function excelDateToYYYYMMDD(serial: any): string {
     if (typeof serial === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(serial)) {
         return serial;
     }
     if (typeof serial !== 'number' || isNaN(serial)) {
-      // Fallback for invalid or non-numeric formats
       const today = new Date();
       return today.toISOString().split('T')[0];
     }
-    // Formula to convert Excel serial number to JS date (subtract 25569 for origin date)
     const utc_days = Math.floor(serial - 25569);
     const utc_value = utc_days * 86400;
     const date_info = new Date(utc_value * 1000);
@@ -108,34 +105,31 @@ function excelDateToYYYYMMDD(serial: any): string {
     return `${year}-${month}-${day}`;
 }
 
-// Helper to parse tenure string (e.g., "1 ANO E 7 MESES") to years
-function parseTenureToYears(tenureStr: any): number | null {
+// Robust function to parse tenure string to total months
+function parseTenureToMonths(tenureStr: any): number | null {
     if (!tenureStr || typeof tenureStr !== 'string' || tenureStr.trim() === '') {
         return null;
     }
 
-    const text = tenureStr.toLowerCase().replace(/ e /g, ' ');
-    let years = 0;
-    let months = 0;
-    let days = 0;
+    const text = tenureStr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    let totalMonths = 0;
 
-    const yearMatch = text.match(/(\d+)\s*ano/);
+    const yearMatch = text.match(/(\d+)\s*ano(s?)/);
     if (yearMatch) {
-        years = parseInt(yearMatch[1], 10);
+        totalMonths += parseInt(yearMatch[1], 10) * 12;
     }
 
-    const monthMatch = text.match(/(\d+)\s*m[eê]s/);
+    const monthMatch = text.match(/(\d+)\s*mes(es)?/);
     if (monthMatch) {
-        months = parseInt(monthMatch[1], 10);
+        totalMonths += parseInt(monthMatch[1], 10);
     }
     
-    const dayMatch = text.match(/(\d+)\s*dia/);
+    const dayMatch = text.match(/(\d+)\s*dia(s?)/);
     if (dayMatch) {
-        days = parseInt(dayMatch[1], 10);
+        totalMonths += parseInt(dayMatch[1], 10) / 30; // Approximate days to months
     }
 
-    const totalYears = years + (months / 12) + (days / 365);
-    return totalYears > 0 ? totalYears : null;
+    return totalMonths > 0 ? totalMonths : null;
 }
 
 
@@ -150,7 +144,6 @@ export async function importExitsAction(data: any[]) {
 
     for (const rawItem of data) {
         try {
-            // Create a new object with lowercase keys without spaces or special chars
             const item: { [key: string]: any } = {};
             for (const key in rawItem) {
                 if (Object.prototype.hasOwnProperty.call(rawItem, key)) {
@@ -160,22 +153,20 @@ export async function importExitsAction(data: any[]) {
             }
 
 
-            // Normalize core fields first
             item.nome_completo = String(item.nomecompleto || '').trim();
             item.tipo = String(item.tipo || '').trim();
 
             if (!item.nome_completo) {
-                continue; // Skip rows without a name
+                continue; 
             }
 
             item.data_desligamento = excelDateToYYYYMMDD(item.datadesligamento);
             item.lider = String(item.lider || '').trim();
             item.sexo = String(item.sexo || '').trim();
             item.idade = Number(item.idade) || 0;
-            item.tempo_empresa = parseTenureToYears(item.tempoempresa);
+            item.tempo_empresa = parseTenureToMonths(item.tempoempresa);
 
             if (item.tipo === 'pedido_demissao') {
-                // Process fields specific to "pedido_demissao"
                 item.bairro = String(item.bairro || '').trim();
                 item.cargo = String(item.cargo || '').trim();
                 item.setor = String(item.setor || '').trim();
@@ -191,12 +182,9 @@ export async function importExitsAction(data: any[]) {
                 item.comentarios = String(item.comentarios || '').trim();
                 item.filtro = String(item.filtro || '').trim();
             } else if (item.tipo === 'demissao_empresa') {
-                // Process fields specific to "demissao_empresa"
                 item.turno = String(item.turno || '').trim();
-                // Map `motivo_desligamento` to `motivo` for consistency in the database
                 item.motivo = String(item.motivodesligamento || '').trim();
             } else {
-                // Skip if type is not recognized
                 continue;
             }
             
