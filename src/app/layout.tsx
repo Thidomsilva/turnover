@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Exit Insights',
+  title: 'Gestão de Turnover',
   description: 'Sistema web para gerenciamento dos desligamentos de colaboradores.',
 };
 

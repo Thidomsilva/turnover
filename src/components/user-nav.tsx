@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User, Settings, LogOut, PlusCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export function UserNav() {
   return (
@@ -28,7 +29,7 @@ export function UserNav() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">Admin</p>
             <p className="text-xs leading-none text-muted-foreground">
-              admin@exitinsights.com
+              admin@gestaodeturnover.com
             </p>
           </div>
         </DropdownMenuLabel>
@@ -50,10 +51,12 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
-          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+        <DropdownMenuItem asChild>
+          <Link href="/">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sair</span>
+            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+          </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

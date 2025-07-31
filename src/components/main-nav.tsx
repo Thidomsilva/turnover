@@ -11,10 +11,10 @@ export function MainNav({
       className={cn('flex items-center space-x-4 lg:space-x-6', className)}
       {...props}
     >
-      <Link href="/" className="flex items-center gap-2">
+      <Link href="/dashboard" className="flex items-center gap-2">
         <Icons.logo className="h-6 w-6" />
         <span className="hidden font-bold md:inline-block">
-          Exit Insights
+          Gestão de Turnover
         </span>
       </Link>
     </nav>
