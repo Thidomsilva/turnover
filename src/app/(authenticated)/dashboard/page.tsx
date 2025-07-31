@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { OverviewChart } from '@/components/overview-chart';
 import { RecentExits } from '@/components/recent-exits';
@@ -18,10 +18,45 @@ import { ExitTypeChart } from '@/components/exit-type-chart';
 import { getDashboardData } from '@/lib/data';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, Upload, FileText, BrainCircuit } from 'lucide-react';
+import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2 } from 'lucide-react';
 import ExitForm from '@/components/exit-form';
 
+type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
+
 export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const dashboardData = await getDashboardData();
+        setData(dashboardData);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  if (loading || !data) {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   const {
     totalExits,
     totalPedidos,
@@ -30,13 +65,7 @@ export default function DashboardPage() {
     exitsByMonth,
     recentExits,
     exitsByType
-  } = getDashboardData();
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
+  } = data;
 
   return (
     <>
@@ -118,7 +147,7 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle>Desligamentos Recentes</CardTitle>
                 <CardDescription>
-                  As últimas {recentExits.length} saídas registradas.
+                  As últimas saídas registradas.
                 </CardDescription>
               </CardHeader>
               <CardContent>

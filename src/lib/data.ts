@@ -1,132 +1,24 @@
 import { type ExitData, type PedidoDemissao } from '@/lib/types';
-import { subMonths, format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db } from './firebase';
 
-export const MOCK_EXIT_DATA: ExitData[] = [
-  {
-    id: '1',
-    tipo: 'pedido_demissao',
-    data_desligamento: format(subMonths(new Date(), 1), 'yyyy-MM-dd'),
-    tempo_empresa: '2 anos',
-    nome_completo: 'Ana Silva',
-    bairro: 'Centro',
-    idade: 28,
-    sexo: 'Feminino',
-    cargo: 'Analista de Marketing',
-    setor: 'Marketing',
-    lider: 'Carlos Pereira',
-    motivo: 'Oportunidade melhor',
-    trabalhou_em_industria: false,
-    nivel_escolar: 'Superior Completo',
-    deslocamento: '30 min',
-    nota_lideranca: 8,
-    obs_lideranca: 'Bom líder, mas pouco feedback.',
-    nota_rh: 7,
-    obs_rh: 'Processo de saída tranquilo.',
-    nota_empresa: 7,
-    comentarios: 'A empresa é boa, mas o salário estava defasado.',
-  },
-  {
-    id: '2',
-    tipo: 'demissao_empresa',
-    data_desligamento: format(subMonths(new Date(), 1), 'yyyy-MM-dd'),
-    nome_completo: 'João Santos',
-    lider: 'Mariana Lima',
-    turno: 'Manhã',
-    sexo: 'Masculino',
-    idade: 35,
-    tempo_empresa: '3 anos',
-    motivo_desligamento: 'Baixo desempenho',
-  },
-  {
-    id: '3',
-    tipo: 'pedido_demissao',
-    data_desligamento: format(subMonths(new Date(), 2), 'yyyy-MM-dd'),
-    tempo_empresa: '1 ano',
-    nome_completo: 'Mariana Costa',
-    bairro: 'Zona Sul',
-    idade: 24,
-    sexo: 'Feminino',
-    cargo: 'Desenvolvedora Jr',
-    setor: 'Tecnologia',
-    lider: 'Ricardo Alves',
-    motivo: 'Falta de plano de carreira',
-    trabalhou_em_industria: true,
-    nivel_escolar: 'Superior Incompleto',
-    deslocamento: '1 hora',
-    nota_lideranca: 6,
-    obs_lideranca: 'Liderança ausente.',
-    nota_rh: 8,
-    obs_rh: 'RH sempre prestativo.',
-    nota_empresa: 6,
-    comentarios: 'Falta de oportunidades de crescimento.',
-  },
-  {
-    id: '4',
-    tipo: 'demissao_empresa',
-    data_desligamento: format(subMonths(new Date(), 3), 'yyyy-MM-dd'),
-    nome_completo: 'Pedro Oliveira',
-    lider: 'Carlos Pereira',
-    turno: 'Tarde',
-    sexo: 'Masculino',
-    idade: 42,
-    tempo_empresa: '5 anos',
-    motivo_desligamento: 'Reestruturação do setor',
-  },
-  {
-    id: '5',
-    tipo: 'pedido_demissao',
-    data_desligamento: format(subMonths(new Date(), 3), 'yyyy-MM-dd'),
-    tempo_empresa: '6 meses',
-    nome_completo: 'Juliana Ferreira',
-    bairro: 'Zona Norte',
-    idade: 22,
-    sexo: 'Feminino',
-    cargo: 'Assistente Administrativo',
-    setor: 'Administrativo',
-    lider: 'Sofia Martins',
-    motivo: 'Ambiente de trabalho',
-    trabalhou_em_industria: false,
-    nivel_escolar: 'Médio Completo',
-    deslocamento: '45 min',
-    nota_lideranca: 5,
-    obs_lideranca: 'Liderança despreparada.',
-    nota_rh: 6,
-    obs_rh: 'Pouco apoio do RH.',
-    nota_empresa: 5,
-    comentarios: 'Clima organizacional pesado e falta de reconhecimento.',
-  },
-  {
-    id: '6',
-    tipo: 'pedido_demissao',
-    data_desligamento: format(subMonths(new Date(), 4), 'yyyy-MM-dd'),
-    tempo_empresa: '4 anos',
-    nome_completo: 'Lucas Martins',
-    bairro: 'Centro',
-    idade: 31,
-    sexo: 'Masculino',
-    cargo: 'Gerente de Vendas',
-    setor: 'Vendas',
-    lider: 'Diretoria',
-    motivo: 'Outros',
-    trabalhou_em_industria: true,
-    nivel_escolar: 'Pós-graduação',
-    deslocamento: '20 min',
-    nota_lideranca: 9,
-    obs_lideranca: 'Gestão excelente',
-    nota_rh: 8,
-    obs_rh: '',
-    nota_empresa: 8,
-    comentarios: 'Mudança de cidade por motivos pessoais.',
-  },
-];
+export async function getDashboardData() {
+  const exitsCollection = collection(db, 'exits');
+  const querySnapshot = await getDocs(query(exitsCollection, orderBy('data_desligamento', 'desc')));
+  
+  const MOCK_EXIT_DATA: ExitData[] = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+  } as ExitData));
 
-export function getDashboardData() {
   const totalExits = MOCK_EXIT_DATA.length;
   const totalPedidos = MOCK_EXIT_DATA.filter(d => d.tipo === 'pedido_demissao').length;
   const totalEmpresa = MOCK_EXIT_DATA.filter(d => d.tipo === 'demissao_empresa').length;
   
   const pedidos = MOCK_EXIT_DATA.filter(d => d.tipo === 'pedido_demissao') as PedidoDemissao[];
   const avgTenureInYears = pedidos.reduce((acc, curr) => {
+    if (!curr.tempo_empresa) return acc;
     const years = parseFloat(curr.tempo_empresa.split(' ')[0]);
     return acc + (isNaN(years) ? 0 : years);
   }, 0) / (pedidos.length || 1);

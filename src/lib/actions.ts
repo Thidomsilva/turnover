@@ -1,43 +1,46 @@
 'use server';
 
 import { generateExitInsights, type ExitDataInput } from '@/ai/flows/generate-exit-insights';
-import { MOCK_EXIT_DATA } from './data';
 import type { PedidoDemissao } from './types';
 import { exitFormSchema } from './schemas';
 import { z } from 'zod';
+import { db } from './firebase';
+import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 
 export async function getAiInsights() {
   try {
-    const dataToProcess = MOCK_EXIT_DATA
-      .filter(d => d.tipo === 'pedido_demissao')
-      .map(d => {
-        const pd = d as PedidoDemissao;
-        return {
-          data_desligamento: pd.data_desligamento,
-          tempo_empresa: pd.tempo_empresa,
-          nome_completo: pd.nome_completo,
-          bairro: pd.bairro,
-          idade: pd.idade,
-          sexo: pd.sexo,
-          cargo: pd.cargo,
-          setor: pd.setor,
-          lider: pd.lider,
-          motivo: pd.motivo,
-          trabalhou_em_industria: pd.trabalhou_em_industria ? 'sim' : 'não',
-          nivel_escolar: pd.nivel_escolar,
-          deslocamento: pd.deslocamento,
-          nota_lideranca: pd.nota_lideranca,
-          obs_lideranca: pd.obs_lideranca,
-          nota_rh: pd.nota_rh,
-          obs_rh: pd.obs_rh,
-          nota_empresa: pd.nota_empresa,
-          comentarios: pd.comentarios,
-        };
-      });
+    const exitsCollection = collection(db, 'exits');
+    const q = query(exitsCollection, where('tipo', '==', 'pedido_demissao'));
+    const querySnapshot = await getDocs(q);
 
-    if (dataToProcess.length === 0) {
+    if (querySnapshot.empty) {
       return { error: 'Não há dados de "pedido de demissão" para gerar insights.' };
     }
+    
+    const dataToProcess = querySnapshot.docs.map(doc => {
+      const data = doc.data() as PedidoDemissao;
+       return {
+          data_desligamento: data.data_desligamento,
+          tempo_empresa: data.tempo_empresa || 'N/A',
+          nome_completo: data.nome_completo,
+          bairro: data.bairro || 'N/A',
+          idade: data.idade || 0,
+          sexo: data.sexo || 'N/A',
+          cargo: data.cargo,
+          setor: data.setor,
+          lider: data.lider,
+          motivo: data.motivo,
+          trabalhou_em_industria: data.trabalhou_em_industria ? 'sim' : 'não',
+          nivel_escolar: data.nivel_escolar || 'N/A',
+          deslocamento: data.deslocamento || 'N/A',
+          nota_lideranca: data.nota_lideranca,
+          obs_lideranca: data.obs_lideranca || '',
+          nota_rh: data.nota_rh,
+          obs_rh: data.obs_rh || '',
+          nota_empresa: data.nota_empresa,
+          comentarios: data.comentarios || '',
+        };
+    })
 
     const result = await generateExitInsights({ exitData: dataToProcess as ExitDataInput['exitData'] });
     return { insights: result.insights };
@@ -57,12 +60,21 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
         };
     }
 
-    // Here you would typically save the data to a database.
-    // For this demo, we'll just log it to the console.
-    console.log("New Exit Record:", validatedFields.data);
+    try {
+        const exitsCollection = collection(db, 'exits');
+        await addDoc(exitsCollection, {
+            ...validatedFields.data,
+            createdAt: serverTimestamp(),
+        });
+        
+        return {
+            message: "Desligamento registrado com sucesso.",
+        };
 
-    // Simulate a successful operation
-    return {
-        message: "Exit record created successfully.",
-    };
+    } catch (error) {
+        console.error("Error adding document: ", error);
+        return {
+             message: "Ocorreu um erro ao salvar no banco de dados.",
+        }
+    }
 }
