@@ -34,18 +34,19 @@ export async function getDashboardData() {
     const totalPedidos = allExits.filter(d => d.tipo === 'pedido_demissao').length;
     const totalEmpresa = allExits.filter(d => d.tipo === 'demissao_empresa').length;
     
-    // Filter for valid tenure data (in years) and convert to months for calculation.
-    const tenureDataInYears = allExits
+    // Filter for valid tenure data (in days) and calculate the average.
+    const tenureDataInDays = allExits
         .map(p => p.tempo_empresa)
-        .filter((years): years is number => typeof years === 'number' && isFinite(years) && years > 0);
+        .filter((days): days is number => typeof days === 'number' && isFinite(days) && days > 0);
 
-    const totalTenureInYears = tenureDataInYears.reduce((acc, curr) => acc + curr, 0);
+    const totalTenureInDays = tenureDataInDays.reduce((acc, curr) => acc + curr, 0);
     
     // Calculate average tenure in months
-    const avgTenure = tenureDataInYears.length > 0 
-        ? Math.round((totalTenureInYears / tenureDataInYears.length) * 12) 
+    const avgTenureInDays = tenureDataInDays.length > 0 
+        ? totalTenureInDays / tenureDataInDays.length
         : 0;
-
+    
+    const avgTenure = Math.round(avgTenureInDays / 30.44); // Convert average days to months
 
     // Initialize the last 6 months for the overview chart
     const exitsByMonth = Array.from({ length: 6 }).map((_, i) => {

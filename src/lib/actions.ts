@@ -106,31 +106,36 @@ function excelDateToYYYYMMDD(serial: any): string {
     return `${year}-${month}-${day}`;
 }
 
-
-function parseTenureToYears(tenure: any): number | null {
+function parseTenureToDays(tenure: any): number | null {
     if (tenure === null || tenure === undefined) return null;
 
-    const tenureStr = String(tenure).toLowerCase().trim();
-    if (tenureStr === '') return null;
-
-    // Direct conversion if it's already a number or a numeric string
+    let tenureStr = String(tenure).trim().toLowerCase();
+    
+    // If it's a simple number, assume it's already in years and convert to days
     const numericValue = parseFloat(tenureStr.replace(',', '.'));
-    if (!isNaN(numericValue) && isFinite(numericValue)) {
-        return numericValue;
+    if (!isNaN(numericValue) && isFinite(numericValue) && !/[a-z]/.test(tenureStr)) {
+        return numericValue * 365.25;
     }
 
-    let totalMonths = 0;
+    // Normalize variations of "ano", "mes", "dia"
+    tenureStr = tenureStr
+        .replace(/anos?/g, 'ano')
+        .replace(/meses|mês/g, 'mes')
+        .replace(/dias?/g, 'dia');
+
+    let totalDays = 0;
+
     const yearMatch = tenureStr.match(/(\d+)\s*ano/);
     const monthMatch = tenureStr.match(/(\d+)\s*mes/);
     const dayMatch = tenureStr.match(/(\d+)\s*dia/);
 
-    if (yearMatch) totalMonths += parseInt(yearMatch[1], 10) * 12;
-    if (monthMatch) totalMonths += parseInt(monthMatch[1], 10);
-    if (dayMatch) totalMonths += parseInt(dayMatch[1], 10) / 30; // Approximate
-
-    if (totalMonths === 0) return null;
+    if (yearMatch) totalDays += parseInt(yearMatch[1], 10) * 365.25; // Average days in a year
+    if (monthMatch) totalDays += parseInt(monthMatch[1], 10) * 30.44; // Average days in a month
+    if (dayMatch) totalDays += parseInt(dayMatch[1], 10);
     
-    return totalMonths / 12; // Convert total months to years
+    if (totalDays === 0) return null;
+
+    return totalDays;
 }
 
 
@@ -166,9 +171,7 @@ export async function importExitsAction(data: any[]) {
             item.sexo = String(item['sexo'] || '').trim();
             item.idade = Number(item['idade']) || null;
             
-            // Correctly parse tenure using the robust function
-            item.tempo_empresa = parseTenureToYears(item['tempodeempresa']);
-
+            item.tempo_empresa = parseTenureToDays(item['tempodeempresa']);
 
             if (item.tipo === 'pedido_demissao') {
                 item.bairro = String(item['bairro'] || '').trim();
@@ -247,4 +250,3 @@ export async function clearAllExitsAction() {
         }
     }
 }
-
