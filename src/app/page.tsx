@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
+import { Icons } from "@/components/icons"
 
 export default function LoginPage() {
   return (
@@ -12,7 +13,7 @@ export default function LoginPage() {
         <Card>
           <CardHeader className="space-y-1 text-center">
             <div className="flex flex-col justify-center items-center gap-2 mb-2">
-                <Image src="https://firebasestudio.ai/api/image-proxy/RmlsZTozYzY0MTA4Yy00ODBlLTQ4MDAtYjMyNy04N2EyNzdhMTRhZmUuanBn" alt="Logotipo" width={250} height={100} />
+                <Icons.logo className="h-12 w-12" />
                 <CardTitle className="text-2xl pt-4">Gestão de Turnover</CardTitle>
             </div>
             <CardDescription>
