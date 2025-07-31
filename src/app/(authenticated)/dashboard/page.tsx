@@ -58,13 +58,18 @@ export default function DashboardPage() {
         setData(dashboardData);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        setData(null); // Ensure data is null on error
+        toast({
+            title: "Erro ao carregar dados",
+            description: "Não foi possível buscar os dados do dashboard.",
+            variant: "destructive",
+        })
+        setData(null);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [toast]);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -109,7 +114,6 @@ export default function DashboardPage() {
                 title: "Sucesso!",
                 description: result.message,
             });
-            // Give toast time to show before reloading
             setTimeout(() => window.location.reload(), 1000);
         } else {
              toast({
@@ -121,7 +125,6 @@ export default function DashboardPage() {
       });
     };
     reader.readAsBinaryString(file);
-    // Reset file input to allow re-uploading the same file
     if(e.target) e.target.value = '';
   }
 
@@ -132,8 +135,12 @@ export default function DashboardPage() {
     
     const exitsInMonth = data.allExits.filter(exit => {
       if (!exit.data_desligamento) return false;
-      const exitDate = parseISO(exit.data_desligamento);
-      return exitDate.getMonth() === parsedMonth.getMonth();
+      try {
+        const exitDate = parseISO(exit.data_desligamento);
+        return exitDate.getMonth() === parsedMonth.getMonth();
+      } catch {
+        return false;
+      }
     });
 
     const fullMonthName = format(parsedMonth, 'MMMM', { locale: ptBR });
@@ -147,37 +154,45 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-        <div className="flex items-center justify-center h-full min-h-[60vh]">
+        <div className="flex items-center justify-center h-full min-h-[80vh]">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-2">Carregando dados...</p>
         </div>
     );
   }
 
   if (!data || data.totalExits === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-center p-4 border-2 border-dashed rounded-lg">
+      <div className="flex flex-col items-center justify-center h-[70vh] text-center p-4 border-2 border-dashed rounded-lg bg-card">
           <BarChartBig className="h-16 w-16 text-muted-foreground mb-4" />
           <h2 className="text-2xl font-bold mb-2">Bem-vindo à Gestão de Turnover!</h2>
           <p className="text-muted-foreground mb-6">Ainda não há dados de desligamento para exibir.</p>
-           <Sheet>
-            <SheetTrigger asChild>
-              <Button size="lg">
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Registrar Primeiro Desligamento
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="sm:max-w-2xl overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Cadastro de Desligamento</SheetTitle>
-                <SheetDescription>
-                  Preencha os campos abaixo para registrar um novo desligamento.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="py-4">
-                <ExitForm />
-              </div>
-            </SheetContent>
-          </Sheet>
+           <div className="flex items-center space-x-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button size="lg">
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Registrar Primeiro Desligamento
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="sm:max-w-2xl overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Cadastro de Desligamento</SheetTitle>
+                  <SheetDescription>
+                    Preencha os campos abaixo para registrar um novo desligamento.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="py-4">
+                  <ExitForm />
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Button variant="outline" size="lg" onClick={handleImportClick} disabled={isPending}>
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {isPending ? 'Importando...' : 'Importar Histórico'}
+            </Button>
+            <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
+          </div>
       </div>
     );
   }
@@ -261,7 +276,7 @@ export default function DashboardPage() {
                   <CardDescription>
                     Comparativo entre pedidos e demissões.
                   </CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent>
                   <ExitTypeChart data={exitsByType} />
                 </CardContent>
@@ -345,31 +360,34 @@ export default function DashboardPage() {
       </Tabs>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Desligamentos em {selectedMonth}</DialogTitle>
             <DialogDescription>
               Lista de colaboradores que saíram neste mês.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
             {monthlyExits.length > 0 ? (
               monthlyExits.map((exit) => (
-                <div key={exit.id} className="flex items-center space-x-4">
+                <div key={exit.id} className="flex items-center space-x-4 p-2 rounded-md hover:bg-secondary">
                   <Avatar>
                     <AvatarImage src={`https://placehold.co/40x40.png?text=${exit.nome_completo.charAt(0)}`} />
                     <AvatarFallback>{exit.nome_completo.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="flex-grow">
                     <p className="text-sm font-medium leading-none">{exit.nome_completo}</p>
                     <p className="text-sm text-muted-foreground">
-                      {exit.tipo === 'pedido_demissao' ? exit.cargo : 'N/A'}
+                      {exit.cargo}
                     </p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {exit.tipo === 'pedido_demissao' ? 'Pedido' : 'Empresa'}
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground text-center">Nenhum desligamento neste mês.</p>
+              <p className="text-sm text-muted-foreground text-center col-span-full">Nenhum desligamento neste mês.</p>
             )}
           </div>
         </DialogContent>
