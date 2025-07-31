@@ -269,75 +269,64 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex items-center space-x-2">
-           <Button variant="outline" size="sm" onClick={handleImportClick} disabled={isPending || loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            {loading ? 'Carregando...' : (isPending ? 'Importando...' : 'Importar Histórico')}
-          </Button>
-          <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
-          <Button variant="outline" size="sm" disabled={loading}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Exportar
-          </Button>
-            <Sheet>
-            <SheetTrigger asChild>
-              <Button size="sm" disabled={loading}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Novo Desligamento
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="sm:max-w-2xl overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Cadastro de Desligamento</SheetTitle>
-                <SheetDescription>
-                  Preencha os campos abaixo para registrar um novo desligamento.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="py-4">
-                <ExitForm />
-              </div>
-            </SheetContent>
-          </Sheet>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-               <Button variant="destructive" size="sm" disabled={isPending || loading}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Limpar Dados
+        <div className="flex flex-col md:items-end gap-2">
+            <div className='flex items-center space-x-2'>
+                <Button variant="outline" size="sm" onClick={handleImportClick} disabled={isPending || loading}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                    {loading ? 'Carregando...' : (isPending ? 'Importando...' : 'Importar Histórico')}
                 </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Essa ação não pode ser desfeita. Isso excluirá permanentemente todos os dados de desligamento do banco de dados.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleClearData} disabled={isPending || loading}>
-                  {isPending || loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
-      <Tabs defaultValue="overview" className="space-y-4">
-        <div className='flex justify-between items-center'>
-            <TabsList>
-                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                <TabsTrigger value="reports">
-                    Relatórios
-                </TabsTrigger>
-                <TabsTrigger value="analytics">
-                    Análise Preditiva
-                </TabsTrigger>
-            </TabsList>
+                <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
+                <Button variant="outline" size="sm" disabled={loading}>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Exportar
+                </Button>
+                <Sheet>
+                    <SheetTrigger asChild>
+                    <Button size="sm" disabled={loading}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Novo Desligamento
+                    </Button>
+                    </SheetTrigger>
+                    <SheetContent className="sm:max-w-2xl overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Cadastro de Desligamento</SheetTitle>
+                        <SheetDescription>
+                        Preencha os campos abaixo para registrar um novo desligamento.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="py-4">
+                        <ExitForm />
+                    </div>
+                    </SheetContent>
+                </Sheet>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={isPending || loading}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Limpar Dados
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                        Essa ação não pode ser desfeita. Isso excluirá permanentemente todos os dados de desligamento do banco de dados.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearData} disabled={isPending || loading}>
+                        {isPending || loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
             <div className='flex items-center space-x-2'>
                 <Select value={filterMonth} onValueChange={setFilterMonth} disabled={loading}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full md:w-[180px]">
                         <SelectValue placeholder="Mês" />
                     </SelectTrigger>
                     <SelectContent>
@@ -357,7 +346,7 @@ export default function DashboardPage() {
                     </SelectContent>
                 </Select>
                  <Select value={filterYear} onValueChange={setFilterYear} disabled={loading}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full md:w-[120px]">
                         <SelectValue placeholder="Ano" />
                     </SelectTrigger>
                     <SelectContent>
@@ -368,6 +357,18 @@ export default function DashboardPage() {
                 </Select>
             </div>
         </div>
+      </div>
+      <Tabs defaultValue="overview" className="space-y-4 pt-4">
+        <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="reports">
+                Relatórios
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+                Análise Preditiva
+            </TabsTrigger>
+        </TabsList>
+        
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Total de Desligamentos" value={totalExits.toString()} description="Total de saídas no período" icon="Users" />
@@ -517,5 +518,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    
