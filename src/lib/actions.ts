@@ -111,7 +111,7 @@ function parseTenureToMonths(tenureStr: any): number | null {
         return null;
     }
 
-    const text = tenureStr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const text = String(tenureStr).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     let totalMonths = 0;
 
     const yearMatch = text.match(/(\d+)\s*ano(s?)/);
@@ -129,7 +129,7 @@ function parseTenureToMonths(tenureStr: any): number | null {
         totalMonths += parseInt(dayMatch[1], 10) / 30; // Approximate days to months
     }
 
-    return totalMonths > 0 ? totalMonths : null;
+    return totalMonths > 0 ? Math.round(totalMonths) : null;
 }
 
 
@@ -147,7 +147,7 @@ export async function importExitsAction(data: any[]) {
             const item: { [key: string]: any } = {};
             for (const key in rawItem) {
                 if (Object.prototype.hasOwnProperty.call(rawItem, key)) {
-                    const newKey = key.toLowerCase().trim().replace(/\s+/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const newKey = String(key).toLowerCase().trim().replace(/\s+/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     item[newKey] = rawItem[key];
                 }
             }
