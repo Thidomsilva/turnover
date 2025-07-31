@@ -106,17 +106,31 @@ function excelDateToYYYYMMDD(serial: any): string {
     return `${year}-${month}-${day}`;
 }
 
-// Robust function to parse tenure string to a number (in years)
+
 function parseTenureToYears(tenure: any): number | null {
-    if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
-        return null;
-    }
-    const numericValue = parseFloat(String(tenure).replace(',', '.'));
+    if (tenure === null || tenure === undefined) return null;
+
+    const tenureStr = String(tenure).toLowerCase().trim();
+    if (tenureStr === '') return null;
+
+    // Direct conversion if it's already a number or a numeric string
+    const numericValue = parseFloat(tenureStr.replace(',', '.'));
     if (!isNaN(numericValue) && isFinite(numericValue)) {
-        // Assume the numeric value from Excel is already in years.
         return numericValue;
     }
-    return null;
+
+    let totalMonths = 0;
+    const yearMatch = tenureStr.match(/(\d+)\s*ano/);
+    const monthMatch = tenureStr.match(/(\d+)\s*mes/);
+    const dayMatch = tenureStr.match(/(\d+)\s*dia/);
+
+    if (yearMatch) totalMonths += parseInt(yearMatch[1], 10) * 12;
+    if (monthMatch) totalMonths += parseInt(monthMatch[1], 10);
+    if (dayMatch) totalMonths += parseInt(dayMatch[1], 10) / 30; // Approximate
+
+    if (totalMonths === 0) return null;
+    
+    return totalMonths / 12; // Convert total months to years
 }
 
 
@@ -134,7 +148,7 @@ export async function importExitsAction(data: any[]) {
             const item: { [key: string]: any } = {};
             for (const key in rawItem) {
                 if (Object.prototype.hasOwnProperty.call(rawItem, key)) {
-                    const newKey = String(key).toLowerCase().trim().replace(/\s+/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                     const newKey = String(key).toLowerCase().trim().replace(/\s+/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     item[newKey] = rawItem[key];
                 }
             }
@@ -150,8 +164,11 @@ export async function importExitsAction(data: any[]) {
             item.data_desligamento = excelDateToYYYYMMDD(item['datadesligamento']);
             item.lider = String(item['lider'] || '').trim();
             item.sexo = String(item['sexo'] || '').trim();
-            item.idade = Number(item['idade']) || 0;
+            item.idade = Number(item['idade']) || null;
+            
+            // Correctly parse tenure using the robust function
             item.tempo_empresa = parseTenureToYears(item['tempodeempresa']);
+
 
             if (item.tipo === 'pedido_demissao') {
                 item.bairro = String(item['bairro'] || '').trim();
@@ -161,16 +178,16 @@ export async function importExitsAction(data: any[]) {
                 item.trabalhou_em_industria = String(item['trabalhouemindustria'] || '').trim();
                 item.nivel_escolar = String(item['nivelescolar'] || '').trim();
                 item.deslocamento = String(item['deslocamento'] || '').trim();
-                item.nota_lideranca = Number(item['notalideranca']) || 0;
+                item.nota_lideranca = Number(item['notalideranca']) || null;
                 item.obs_lideranca = String(item['obslideranca'] || '').trim();
-                item.nota_rh = Number(item['notarh']) || 0;
+                item.nota_rh = Number(item['notarh']) || null;
                 item.obs_rh = String(item['obsrh'] || '').trim();
-                item.nota_empresa = Number(item['notaempresa']) || 0;
+                item.nota_empresa = Number(item['notaempresa']) || null;
                 item.comentarios = String(item['comentarios'] || '').trim();
                 item.filtro = String(item['filtro'] || '').trim();
             } else if (item.tipo === 'demissao_empresa') {
                 item.turno = String(item['turno'] || '').trim();
-                item.motivo = String(item['motivodesligamento'] || item['motivo'] || '').trim();
+                 item.motivo = String(item['motivodesligamento'] || item['motivo'] || '').trim();
             } else {
                 continue;
             }
