@@ -21,7 +21,7 @@ import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2, BarChart
 import ExitForm from '@/components/exit-form';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
-import { importExitsAction, clearAllExitsAction } from '@/lib/actions';
+import { importExitsAction } from '@/lib/actions';
 import {
   Dialog,
   DialogContent,
@@ -192,25 +192,6 @@ export default function DashboardPage() {
     setIsModalOpen(true);
   };
 
-  const handleClearData = () => {
-    startTransition(async () => {
-        const result = await clearAllExitsAction();
-        if (result.success) {
-            toast({
-                title: "Sucesso!",
-                description: result.message,
-            });
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            toast({
-                title: "Erro",
-                description: result.message || "Ocorreu um erro ao limpar os dados.",
-                variant: 'destructive',
-            });
-        }
-    });
-  }
-
   if (loading && !data) {
     return (
         <div className="flex items-center justify-center h-full min-h-[80vh]">
@@ -304,28 +285,6 @@ export default function DashboardPage() {
                     </div>
                     </SheetContent>
                 </Sheet>
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" disabled={isPending || loading}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Limpar Dados
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                        Essa ação não pode ser desfeita. Isso excluirá permanentemente todos os dados de desligamento do banco de dados.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleClearData} disabled={isPending || loading}>
-                        {isPending || loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </div>
             <div className='flex items-center space-x-2'>
                 <Select value={filterMonth} onValueChange={setFilterMonth} disabled={loading}>
@@ -519,3 +478,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
