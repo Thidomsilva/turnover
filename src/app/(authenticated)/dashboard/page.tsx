@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Card,
   CardContent,
@@ -6,6 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useRef } from 'react';
 
 import { OverviewChart } from '@/components/overview-chart';
 import { RecentExits } from '@/components/recent-exits';
@@ -26,20 +29,25 @@ export default function DashboardPage() {
     avgTenure,
     exitsByMonth,
     recentExits,
-    exitReasons,
     exitsByType
   } = getDashboardData();
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <>
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex items-center space-x-2">
-           <Button variant="outline" size="sm" onClick={() => document.getElementById('file-upload')?.click()}>
+           <Button variant="outline" size="sm" onClick={handleImportClick}>
             <Upload className="mr-2 h-4 w-4" />
             Importar Histórico
           </Button>
-          <input type="file" id="file-upload" className="hidden" />
+          <input type="file" ref={fileInputRef} className="hidden" />
           <Button variant="outline" size="sm">
             <FileDown className="mr-2 h-4 w-4" />
             Exportar
