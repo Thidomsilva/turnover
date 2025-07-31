@@ -85,6 +85,24 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
     }
 }
 
+// Helper to convert Excel serial date to YYYY-MM-DD
+function excelDateToYYYYMMDD(serial: number) {
+  if (typeof serial !== 'number' || isNaN(serial)) {
+    return serial; // Return original value if not a valid number
+  }
+  // Formula to convert Excel serial number to JS date
+  const utc_days  = Math.floor(serial - 25569);
+  const utc_value = utc_days * 86400;                                        
+  const date_info = new Date(utc_value * 1000);
+
+  const year = date_info.getUTCFullYear();
+  const month = String(date_info.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date_info.getUTCDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+
 export async function importExitsAction(data: any[]) {
   if (!data || data.length === 0) {
     return { success: false, message: 'Nenhum dado para importar.' };
@@ -95,11 +113,21 @@ export async function importExitsAction(data: any[]) {
 
   let count = 0;
 
-  for (const item of data) {
-    const docRef = doc(exitsCollection); // Create a new doc with a random ID
-     batch.set(docRef, {
-      ...item,
-    });
+  for (const rawItem of data) {
+    // Ensure all fields are strings or the correct type
+    const item = Object.entries(rawItem).reduce((acc, [key, value]) => {
+      // Convert date field from Excel serial number
+      if (key === 'data_desligamento' && typeof value === 'number') {
+        acc[key] = excelDateToYYYYMMDD(value);
+      } else {
+        acc[key] = value !== null && value !== undefined ? String(value) : '';
+      }
+      return acc;
+    }, {} as { [key: string]: any });
+
+
+    const docRef = doc(exitsCollection);
+     batch.set(docRef, item);
     count++;
   }
 
@@ -111,7 +139,7 @@ export async function importExitsAction(data: any[]) {
     console.error('Error importing documents: ', error);
     return {
       success: false,
-      message: error.message || 'Ocorreu um erro ao importar os dados.',
+      message: error.message || 'Ocorreu um erro ao importar os dados para o banco de dados.',
     };
   }
 }
