@@ -110,15 +110,8 @@ function parseTenureToDays(tenure: any): number | null {
     if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
         return null;
     }
-    
-    // If it's already a valid number, assume it's years and convert to days.
-    const numericValue = parseFloat(String(tenure).replace(',', '.'));
-    if (!isNaN(numericValue) && isFinite(numericValue) && !/[a-z]/i.test(String(tenure))) {
-        return Math.round(numericValue * 365);
-    }
-    
+
     const tenureStr = String(tenure).toUpperCase().trim();
-    
     let years = 0;
     let months = 0;
     let days = 0;
@@ -138,11 +131,9 @@ function parseTenureToDays(tenure: any): number | null {
         days = parseInt(dayMatch[1], 10);
     }
 
-    if (years === 0 && months === 0 && days === 0) {
-        return null;
-    }
+    const totalDays = (years * 365) + (months * 30) + days;
 
-    return (years * 365) + (months * 30) + days;
+    return totalDays > 0 ? totalDays : null;
 }
 
 
@@ -178,7 +169,7 @@ export async function importExitsAction(data: any[]) {
             item.sexo = String(item['sexo'] || '').trim();
             item.idade = Number(item['idade']) || null;
             
-            item.tempo_empresa = parseTenureToDays(item['tempoempresa']);
+            item.tempo_empresa = parseTenureToDays(item['tempodeempresa']);
 
             if (item.tipo === 'pedido_demissao') {
                 item.bairro = String(item['bairro'] || '').trim();
