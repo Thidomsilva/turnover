@@ -86,60 +86,98 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
 }
 
 // Helper to convert Excel serial date to YYYY-MM-DD
-function excelDateToYYYYMMDD(serial: number) {
-  if (typeof serial !== 'number' || isNaN(serial)) {
-    return serial; // Return original value if not a valid number
-  }
-  // Formula to convert Excel serial number to JS date
-  const utc_days  = Math.floor(serial - 25569);
-  const utc_value = utc_days * 86400;                                        
-  const date_info = new Date(utc_value * 1000);
+function excelDateToYYYYMMDD(serial: number): string {
+    if (typeof serial !== 'number' || isNaN(serial)) {
+        // If it's not a number, it might already be a date string like 'YYYY-MM-DD'
+        if (typeof serial === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(serial)) {
+            return serial;
+        }
+        // Return a placeholder or throw an error for invalid formats
+        return new Date().toISOString().split('T')[0];
+    }
+    // Formula to convert Excel serial number to JS date (subtract 25569 for origin date)
+    const utc_days = Math.floor(serial - 25569);
+    const utc_value = utc_days * 86400;
+    const date_info = new Date(utc_value * 1000);
 
-  const year = date_info.getUTCFullYear();
-  const month = String(date_info.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date_info.getUTCDate()).padStart(2, '0');
+    const year = date_info.getUTCFullYear();
+    const month = String(date_info.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date_info.getUTCDate()).padStart(2, '0');
 
-  return `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}`;
 }
 
 
 export async function importExitsAction(data: any[]) {
-  if (!data || data.length === 0) {
-    return { success: false, message: 'Nenhum dado para importar.' };
-  }
+    if (!data || data.length === 0) {
+        return { success: false, message: 'Nenhum dado para importar.' };
+    }
 
-  const batch = writeBatch(db);
-  const exitsCollection = collection(db, 'exits');
+    const batch = writeBatch(db);
+    const exitsCollection = collection(db, 'exits');
+    let count = 0;
 
-  let count = 0;
+    const requiredStringFields = ['nome_completo', 'lider', 'setor', 'cargo', 'motivo'];
 
-  for (const rawItem of data) {
-    // Ensure all fields are strings or the correct type
-    const item = Object.entries(rawItem).reduce((acc, [key, value]) => {
-      // Convert date field from Excel serial number
-      if (key === 'data_desligamento' && typeof value === 'number') {
-        acc[key] = excelDateToYYYYMMDD(value);
-      } else {
-        acc[key] = value !== null && value !== undefined ? String(value) : '';
-      }
-      return acc;
-    }, {} as { [key: string]: any });
+    for (const rawItem of data) {
+        try {
+            const item: { [key: string]: any } = {};
 
+            // --- Data Cleaning and Validation ---
 
-    const docRef = doc(exitsCollection);
-     batch.set(docRef, item);
-    count++;
-  }
+            // Handle and convert dates
+            if (rawItem.data_desligamento) {
+                item.data_desligamento = excelDateToYYYYMMDD(rawItem.data_desligamento);
+            } else {
+                continue; // Skip records without a date
+            }
 
-  try {
-    await batch.commit();
-    revalidatePath('/dashboard');
-    return { success: true, message: `${count} registros importados com sucesso.` };
-  } catch (error: any) {
-    console.error('Error importing documents: ', error);
-    return {
-      success: false,
-      message: error.message || 'Ocorreu um erro ao importar os dados para o banco de dados.',
-    };
-  }
+            // Ensure required string fields are strings and not empty
+            for (const field of requiredStringFields) {
+                const value = rawItem[field];
+                item[field] = value !== null && value !== undefined ? String(value).trim() : '';
+                 if (!item[field]) {
+                    // Optional: skip if a critical field is missing
+                    // For now, we'll allow it but log it
+                    console.warn(`Missing required field '${field}' in row:`, rawItem);
+                }
+            }
+
+            // Handle numeric fields, defaulting to a sensible value if invalid
+            item.nota_lideranca = Number(rawItem.nota_lideranca) || 0;
+            item.nota_rh = Number(rawItem.nota_rh) || 0;
+            item.nota_empresa = Number(rawItem.nota_empresa) || 0;
+
+            // Handle optional fields
+            item.tempo_empresa = rawItem.tempo_empresa ? String(rawItem.tempo_empresa) : '';
+            item.comentarios = rawItem.comentarios ? String(rawItem.comentarios) : '';
+            item.tipo = rawItem.tipo ? String(rawItem.tipo) : 'pedido_demissao'; // Default type if missing
+            
+            // --- End Data Cleaning ---
+
+            const docRef = doc(exitsCollection);
+            batch.set(docRef, item);
+            count++;
+
+        } catch (error) {
+            console.error('Error processing row, skipping:', rawItem, error);
+            // Continue to the next item instead of failing the whole batch
+        }
+    }
+    
+    if (count === 0) {
+        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique o formato da planilha.' };
+    }
+
+    try {
+        await batch.commit();
+        revalidatePath('/dashboard');
+        return { success: true, message: `${count} registros importados com sucesso.` };
+    } catch (error: any) {
+        console.error('Error committing batch to Firestore: ', error);
+        return {
+            success: false,
+            message: `Ocorreu um erro ao salvar os dados no banco: ${error.message}`,
+        };
+    }
 }
