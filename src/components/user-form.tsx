@@ -21,9 +21,9 @@ import React from 'react';
 import { userFormSchema } from '@/lib/schemas';
 import { DialogClose } from './ui/dialog';
 
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { db, app } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
 
@@ -45,7 +45,6 @@ export default function UserForm() {
   async function onSubmit(data: z.infer<typeof userFormSchema>) {
     startTransition(async () => {
       try {
-        const auth = getAuth(app);
         const { name, email, password } = data;
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
