@@ -34,14 +34,14 @@ export async function getDashboardData() {
     const totalPedidos = allExits.filter(d => d.tipo === 'pedido_demissao').length;
     const totalEmpresa = allExits.filter(d => d.tipo === 'demissao_empresa').length;
     
-    // Filter for 'pedido_demissao' to calculate tenure
-    const pedidos = allExits.filter(d => d.tipo === 'pedido_demissao') as PedidoDemissao[];
-    const tenureData = pedidos.map(p => {
-        if (p.tempo_empresa === null || p.tempo_empresa === undefined) return 0;
-        // Replace comma with dot and parse
-        const years = parseFloat(String(p.tempo_empresa).replace(',', '.'));
-        return isNaN(years) ? 0 : years;
-    }).filter(y => y > 0);
+    // Filter for 'pedido_demissao' to calculate tenure and ensure tenure data is valid
+    const tenureData = allExits
+        .map(p => {
+            if (p.tempo_empresa === null || p.tempo_empresa === undefined) return null;
+            const years = parseFloat(String(p.tempo_empresa).replace(',', '.'));
+            return isNaN(years) ? null : years;
+        })
+        .filter((y): y is number => y !== null && y > 0);
 
     const totalTenureInYears = tenureData.reduce((acc, curr) => acc + curr, 0);
     const avgTenureInYears = tenureData.length > 0 ? totalTenureInYears / tenureData.length : 0;
@@ -73,7 +73,7 @@ export async function getDashboardData() {
       }
     });
 
-    const exitReasons = pedidos.reduce((acc, curr) => {
+    const exitReasons = (allExits.filter(e => e.tipo === 'pedido_demissao') as PedidoDemissao[]).reduce((acc, curr) => {
         const reason = curr.motivo;
         if (!reason) return acc;
         const found = acc.find(item => item.reason === reason);
