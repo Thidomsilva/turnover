@@ -116,52 +116,52 @@ export async function importExitsAction(data: any[]) {
     const exitsCollection = collection(db, 'exits');
     let count = 0;
 
-    const allFields = [
-        'data_desligamento', 'nome_completo', 'lider', 'setor', 'cargo', 'motivo',
-        'nota_lideranca', 'nota_rh', 'nota_empresa', 'tempo_empresa', 'comentarios', 'tipo',
-        'bairro', 'idade', 'sexo', 'trabalhou_em_industria', 'nivel_escolar', 'deslocamento',
-        'obs_lideranca', 'obs_rh',
-    ];
-
     for (const rawItem of data) {
         try {
             const item: { [key: string]: any } = {};
 
-            // Normalize all expected fields
-            for (const field of allFields) {
-                const value = rawItem[field];
-                item[field] = value !== null && value !== undefined ? value : '';
+            // Normalize core fields first
+            item.nome_completo = String(rawItem.nome_completo || '').trim();
+            item.tipo = String(rawItem.tipo || '').trim();
+
+            if (!item.nome_completo) {
+                continue; // Skip rows without a name
             }
 
-            // --- Data Cleaning and Validation ---
             item.data_desligamento = excelDateToYYYYMMDD(rawItem.data_desligamento);
+            item.lider = String(rawItem.lider || '').trim();
+            item.sexo = String(rawItem.sexo || '').trim();
+            item.idade = Number(rawItem.idade) || 0;
+            item.tempo_empresa = String(rawItem.tempo_empresa || '0');
 
-            item.nome_completo = String(item.nome_completo).trim();
-            item.lider = String(item.lider).trim();
-            item.setor = String(item.setor).trim();
-            item.cargo = String(item.cargo).trim();
-            item.motivo = String(item.motivo).trim();
-            
-            // If the primary identifier is missing, skip the row
-            if (!item.nome_completo) {
+            if (item.tipo === 'pedido_demissao') {
+                // Process fields specific to "pedido_demissao"
+                item.bairro = String(rawItem.bairro || '').trim();
+                item.cargo = String(rawItem.cargo || '').trim();
+                item.setor = String(rawItem.setor || '').trim();
+                item.motivo = String(rawItem.motivo || '').trim();
+                item.trabalhou_em_industria = String(rawItem.trabalhou_em_industria || '').trim();
+                item.nivel_escolar = String(rawItem.nivel_escolar || '').trim();
+                item.deslocamento = String(rawItem.deslocamento || '').trim();
+                item.nota_lideranca = Number(rawItem.nota_lideranca) || 0;
+                item.obs_lideranca = String(rawItem.obs_lideranca || '').trim();
+                item.nota_rh = Number(rawItem.nota_rh) || 0;
+                item.obs_rh = String(rawItem.obs_rh || '').trim();
+                item.nota_empresa = Number(rawItem.nota_empresa) || 0;
+                item.comentarios = String(rawItem.comentarios || '').trim();
+                item.filtro = String(rawItem.filtro || '').trim();
+            } else if (item.tipo === 'demissao_empresa') {
+                // Process fields specific to "demissao_empresa"
+                item.turno = String(rawItem.turno || '').trim();
+                // Map `motivo_desligamento` to `motivo` for consistency in the database
+                item.motivo = String(rawItem.motivo_desligamento || '').trim();
+            } else {
+                // Skip if type is not recognized
                 continue;
             }
-
-            // Handle numeric fields, defaulting to a sensible value if invalid
-            item.nota_lideranca = Number(item.nota_lideranca) || 0;
-            item.nota_rh = Number(item.nota_rh) || 0;
-            item.nota_empresa = Number(item.nota_empresa) || 0;
-            item.idade = Number(item.idade) || 0;
-
-            // Handle optional string fields
-            item.tempo_empresa = String(item.tempo_empresa);
-            item.comentarios = String(item.comentarios);
-            item.tipo = String(item.tipo) || 'pedido_demissao';
             
-            // --- End Data Cleaning ---
-
             const docRef = doc(exitsCollection);
-            batch.set(docRef, item);
+            batch.set(docRef, { ...item, createdAt: serverTimestamp() });
             count++;
 
         } catch (error) {
@@ -170,7 +170,7 @@ export async function importExitsAction(data: any[]) {
     }
     
     if (count === 0) {
-        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique o formato da planilha e se a coluna "nome_completo" está preenchida.' };
+        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique o formato da planilha, os nomes das abas e se a coluna "nome_completo" está preenchida.' };
     }
 
     try {
