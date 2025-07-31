@@ -1,3 +1,4 @@
+
 import {
   Avatar,
   AvatarFallback,
@@ -7,8 +8,7 @@ import {
 interface RecentExitsProps {
     data: {
         name: string;
-        email: string;
-        role: string;
+        tenure: number;
         type: string;
     }[];
 }
@@ -24,7 +24,7 @@ export function RecentExits({ data }: RecentExitsProps) {
                 </Avatar>
                 <div className="ml-4 space-y-1">
                 <p className="text-sm font-medium leading-none">{exit.name}</p>
-                <p className="text-sm text-muted-foreground">{exit.email}</p>
+                <p className="text-sm text-muted-foreground">{`${exit.tenure} meses`}</p>
                 </div>
                 <div className="ml-auto font-medium">{exit.type}</div>
             </div>

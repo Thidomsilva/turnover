@@ -14,7 +14,6 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { OverviewChart } from '@/components/overview-chart';
 import { RecentExits } from '@/components/recent-exits';
 import { StatCard } from '@/components/stat-card';
-import { AiInsightsCard } from '@/components/ai-insights-card';
 import { ExitTypeChart } from '@/components/exit-type-chart';
 import { getDashboardData } from '@/lib/data';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -368,7 +367,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
             <div className="col-span-4 lg:col-span-3">
-                <AiInsightsCard />
             </div>
           </div>
         </TabsContent>

@@ -1,5 +1,5 @@
 
-import { type ExitData, type PedidoDemissao } from '@/lib/types';
+import { type ExitData } from '@/lib/types';
 import { format, subMonths, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -48,7 +48,7 @@ export async function getDashboardData() {
 
     const exitsByMonth = Array.from({ length: 6 }).map((_, i) => {
       const d = subMonths(new Date(), i);
-      return { name: format(d, 'MMM', { locale: ptBR }), total: 0 };
+      return { name: format(d, 'MMM', { locale: ptBR }), pedido: 0, empresa: 0 };
     }).reverse();
 
     allExits.forEach(exit => {
@@ -59,14 +59,18 @@ export async function getDashboardData() {
           const exitMonth = format(exitDate, 'MMM', { locale: ptBR });
           const monthData = exitsByMonth.find(m => m.name === exitMonth);
           if (monthData) {
-              monthData.total += 1;
+              if (exit.tipo === 'pedido_demissao') {
+                  monthData.pedido += 1;
+              } else if (exit.tipo === 'demissao_empresa') {
+                  monthData.empresa += 1;
+              }
           }
       } catch (e) {
           console.warn(`Could not parse date for exit ${exit.id}: ${exit.data_desligamento}`);
       }
     });
 
-    const exitReasons = (allExits.filter(e => e.tipo === 'pedido_demissao') as PedidoDemissao[]).reduce((acc, curr) => {
+    const exitReasons = allExits.reduce((acc, curr) => {
         const reason = curr.motivo;
         if (!reason) return acc;
         const found = acc.find(item => item.reason === reason);
@@ -85,8 +89,7 @@ export async function getDashboardData() {
 
     const recentExits = allExits.slice(0, 5).map(exit => ({
       name: exit.nome_completo,
-      email: `${exit.nome_completo.split(' ')[0].toLowerCase().replace(/[^a-z]/g, '')}@example.com`,
-      role: exit.tipo === 'pedido_demissao' ? exit.cargo : 'N/A',
+      tenure: exit.tempo_empresa ? Math.round(exit.tempo_empresa / 30) : 0,
       type: exit.tipo === 'pedido_demissao' ? 'Pedido' : 'Empresa',
     }));
 

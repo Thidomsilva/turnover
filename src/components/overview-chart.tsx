@@ -1,9 +1,14 @@
+
 'use client';
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, LabelList } from 'recharts';
 
 interface OverviewChartProps {
-    data: { name: string; total: number }[];
+    data: { 
+        name: string; 
+        pedido: number;
+        empresa: number;
+    }[];
     onBarClick?: (name: string) => void;
 }
 
@@ -16,6 +21,9 @@ export function OverviewChart({ data, onBarClick }: OverviewChartProps) {
             if (e && e.activePayload && e.activePayload[0] && onBarClick) {
                 onBarClick(e.activePayload[0].payload.name);
             }
+        }}
+        margin={{
+            top: 20,
         }}
       >
         <XAxis
@@ -40,7 +48,17 @@ export function OverviewChart({ data, onBarClick }: OverviewChartProps) {
                 borderRadius: 'var(--radius)',
             }}
         />
-        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }} />
+        <Legend 
+            verticalAlign="top" 
+            wrapperStyle={{ top: -10, right: 0 }}
+            formatter={(value) => value === 'pedido' ? 'Pedido' : 'Empresa'}
+        />
+        <Bar dataKey="pedido" stackId="a" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }} >
+             <LabelList dataKey="pedido" position="inside" fill="#fff" fontSize={12} formatter={(value: number) => value > 0 ? value : ''} />
+        </Bar>
+        <Bar dataKey="empresa" stackId="a" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }} >
+            <LabelList dataKey="empresa" position="inside" fill="#fff" fontSize={12} formatter={(value: number) => value > 0 ? value : ''} />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
