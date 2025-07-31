@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -31,7 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { type ExitData } from '@/lib/types';
-import { format, parse } from 'date-fns';
+import { format, parse, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -51,6 +52,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const dashboardData = await getDashboardData();
         setData(dashboardData);
@@ -129,8 +131,9 @@ export default function DashboardPage() {
     const parsedMonth = parse(month, 'MMM', new Date(), { locale: ptBR });
     
     const exitsInMonth = data.allExits.filter(exit => {
-      const exitMonth = new Date(exit.data_desligamento).getMonth();
-      return exitMonth === parsedMonth.getMonth();
+      if (!exit.data_desligamento) return false;
+      const exitDate = parseISO(exit.data_desligamento);
+      return exitDate.getMonth() === parsedMonth.getMonth();
     });
 
     const fullMonthName = format(parsedMonth, 'MMMM', { locale: ptBR });
@@ -144,7 +147,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full min-h-[60vh]">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
     );
