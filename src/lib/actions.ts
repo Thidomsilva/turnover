@@ -86,14 +86,13 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
 }
 
 // Helper to convert Excel serial date to YYYY-MM-DD
-function excelDateToYYYYMMDD(serial: number): string {
+function excelDateToYYYYMMDD(serial: any): string {
+    if (typeof serial === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(serial)) {
+        return serial;
+    }
     if (typeof serial !== 'number' || isNaN(serial)) {
-        // If it's not a number, it might already be a date string like 'YYYY-MM-DD'
-        if (typeof serial === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(serial)) {
-            return serial;
-        }
-        // Return a placeholder or throw an error for invalid formats
-        return new Date().toISOString().split('T')[0];
+      // Fallback for invalid or non-numeric formats
+      return new Date().toISOString().split('T')[0];
     }
     // Formula to convert Excel serial number to JS date (subtract 25569 for origin date)
     const utc_days = Math.floor(serial - 25569);
@@ -117,41 +116,47 @@ export async function importExitsAction(data: any[]) {
     const exitsCollection = collection(db, 'exits');
     let count = 0;
 
-    const requiredStringFields = ['nome_completo', 'lider', 'setor', 'cargo', 'motivo'];
+    const allFields = [
+        'data_desligamento', 'nome_completo', 'lider', 'setor', 'cargo', 'motivo',
+        'nota_lideranca', 'nota_rh', 'nota_empresa', 'tempo_empresa', 'comentarios', 'tipo',
+        'bairro', 'idade', 'sexo', 'trabalhou_em_industria', 'nivel_escolar', 'deslocamento',
+        'obs_lideranca', 'obs_rh',
+    ];
 
     for (const rawItem of data) {
         try {
             const item: { [key: string]: any } = {};
 
-            // --- Data Cleaning and Validation ---
-
-            // Handle and convert dates
-            if (rawItem.data_desligamento) {
-                item.data_desligamento = excelDateToYYYYMMDD(rawItem.data_desligamento);
-            } else {
-                continue; // Skip records without a date
+            // Normalize all expected fields
+            for (const field of allFields) {
+                const value = rawItem[field];
+                item[field] = value !== null && value !== undefined ? value : '';
             }
 
-            // Ensure required string fields are strings and not empty
-            for (const field of requiredStringFields) {
-                const value = rawItem[field];
-                item[field] = value !== null && value !== undefined ? String(value).trim() : '';
-                 if (!item[field]) {
-                    // Optional: skip if a critical field is missing
-                    // For now, we'll allow it but log it
-                    console.warn(`Missing required field '${field}' in row:`, rawItem);
-                }
+            // --- Data Cleaning and Validation ---
+            item.data_desligamento = excelDateToYYYYMMDD(rawItem.data_desligamento);
+
+            item.nome_completo = String(item.nome_completo).trim();
+            item.lider = String(item.lider).trim();
+            item.setor = String(item.setor).trim();
+            item.cargo = String(item.cargo).trim();
+            item.motivo = String(item.motivo).trim();
+            
+            // If the primary identifier is missing, skip the row
+            if (!item.nome_completo) {
+                continue;
             }
 
             // Handle numeric fields, defaulting to a sensible value if invalid
-            item.nota_lideranca = Number(rawItem.nota_lideranca) || 0;
-            item.nota_rh = Number(rawItem.nota_rh) || 0;
-            item.nota_empresa = Number(rawItem.nota_empresa) || 0;
+            item.nota_lideranca = Number(item.nota_lideranca) || 0;
+            item.nota_rh = Number(item.nota_rh) || 0;
+            item.nota_empresa = Number(item.nota_empresa) || 0;
+            item.idade = Number(item.idade) || 0;
 
-            // Handle optional fields
-            item.tempo_empresa = rawItem.tempo_empresa ? String(rawItem.tempo_empresa) : '';
-            item.comentarios = rawItem.comentarios ? String(rawItem.comentarios) : '';
-            item.tipo = rawItem.tipo ? String(rawItem.tipo) : 'pedido_demissao'; // Default type if missing
+            // Handle optional string fields
+            item.tempo_empresa = String(item.tempo_empresa);
+            item.comentarios = String(item.comentarios);
+            item.tipo = String(item.tipo) || 'pedido_demissao';
             
             // --- End Data Cleaning ---
 
@@ -161,12 +166,11 @@ export async function importExitsAction(data: any[]) {
 
         } catch (error) {
             console.error('Error processing row, skipping:', rawItem, error);
-            // Continue to the next item instead of failing the whole batch
         }
     }
     
     if (count === 0) {
-        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique o formato da planilha.' };
+        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique o formato da planilha e se a coluna "nome_completo" está preenchida.' };
     }
 
     try {
