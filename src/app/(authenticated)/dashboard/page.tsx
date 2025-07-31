@@ -60,13 +60,17 @@ export default function DashboardPage() {
     reader.onload = (event) => {
       const workbook = XLSX.read(event.target?.result, { type: 'binary' });
       
-      const pedidosSheet = workbook.Sheets['pedido demissao'];
-      const demitidosSheet = workbook.Sheets['demissao empresa'];
+      const sheetNames = workbook.SheetNames;
+      const pedidosSheetName = sheetNames.find(name => name.toLowerCase().trim() === 'pedido demissao');
+      const demitidosSheetName = sheetNames.find(name => name.toLowerCase().trim() === 'demissao empresa');
+
+      const pedidosSheet = pedidosSheetName ? workbook.Sheets[pedidosSheetName] : undefined;
+      const demitidosSheet = demitidosSheetName ? workbook.Sheets[demitidosSheetName] : undefined;
 
       if (!pedidosSheet && !demitidosSheet) {
         toast({
-            title: "Erro",
-            description: "A planilha deve conter as abas 'pedido demissao' e/ou 'demissao empresa'.",
+            title: "Erro de Importação",
+            description: "A planilha deve conter as abas 'pedido demissao' e/ou 'demissao empresa'. Verifique os nomes das abas e tente novamente.",
             variant: 'destructive',
         });
         return;
@@ -158,7 +162,7 @@ export default function DashboardPage() {
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
             {isPending ? 'Importando...' : 'Importar Histórico'}
           </Button>
-          <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileChange} />
+          <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
           <Button variant="outline" size="sm">
             <FileDown className="mr-2 h-4 w-4" />
             Exportar
