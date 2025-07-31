@@ -120,7 +120,7 @@ export default function DashboardPage() {
                 <CardDescription>
                   As últimas {recentExits.length} saídas registradas.
                 </CardDescription>
-              </Header>
+              </CardHeader>
               <CardContent>
                 <RecentExits data={recentExits} />
               </CardContent>
