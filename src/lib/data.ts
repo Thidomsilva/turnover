@@ -1,5 +1,4 @@
 
-
 import { type ExitData, type PedidoDemissao } from '@/lib/types';
 import { format, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -44,7 +43,8 @@ export async function getDashboardData() {
         ? totalTenureInDays / tenureDataInDays.length
         : 0;
     
-    const avgTenure = Math.round(avgTenureInDays / 30);
+    // Convert average tenure from days to months for display
+    const avgTenure = Math.round(avgTenureInDays / 30.44);
 
     const exitsByMonth = Array.from({ length: 6 }).map((_, i) => {
       const d = subMonths(new Date(), i);

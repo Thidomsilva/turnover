@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { db } from './firebase';
 import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
+import { differenceInDays, parseISO } from 'date-fns';
 
 export async function getAiInsights() {
   try {
@@ -64,10 +65,17 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
     }
 
     try {
+        const { data_admissao, data_desligamento, ...rest } = validatedFields.data;
+        const admissionDate = parseISO(data_admissao);
+        const exitDate = parseISO(data_desligamento);
+        const tenureInDays = differenceInDays(exitDate, admissionDate);
+
         const exitsCollection = collection(db, 'exits');
         await addDoc(exitsCollection, {
-            ...validatedFields.data,
-            tempo_empresa: parseFloat(String(validatedFields.data.tempo_empresa).replace(',', '.')),
+            ...rest,
+            data_admissao,
+            data_desligamento,
+            tempo_empresa: tenureInDays,
             createdAt: serverTimestamp(),
         });
 
@@ -87,13 +95,18 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
     }
 }
 
-function excelDateToYYYYMMDD(serial: any): string {
-    if (typeof serial === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(serial)) {
-        return serial;
+function excelDateToYYYYMMDD(serial: any): string | null {
+    if (!serial) return null;
+    if (typeof serial === 'string') {
+        // Handle cases like 'YYYY-MM-DD' or 'MM/DD/YYYY'
+        if (/^\d{4}-\d{2}-\d{2}$/.test(serial)) return serial;
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(serial)) {
+            const [month, day, year] = serial.split('/');
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
     }
     if (typeof serial !== 'number' || isNaN(serial)) {
-      const today = new Date();
-      return today.toISOString().split('T')[0];
+      return null;
     }
     const utc_days = Math.floor(serial - 25569);
     const utc_value = utc_days * 86400;
@@ -106,47 +119,6 @@ function excelDateToYYYYMMDD(serial: any): string {
     return `${year}-${month}-${day}`;
 }
 
-function parseTenureToDays(tenure: any): number | null {
-    if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
-        return null;
-    }
-
-    const tenureStr = String(tenure).toUpperCase().trim();
-    
-    let anos = 0;
-    let meses = 0;
-    let dias = 0;
-
-    const anoMatch = tenureStr.match(/(\d+)\s*ANOS?/);
-    if (anoMatch) {
-        anos = parseInt(anoMatch[1], 10);
-    }
-
-    const mesMatch = tenureStr.match(/(\d+)\s*M[ÊE]S(?:ES)?/);
-    if (mesMatch) {
-        meses = parseInt(mesMatch[1], 10);
-    }
-
-    const diaMatch = tenureStr.match(/(\d+)\s*DIAS?/);
-    if (diaMatch) {
-        dias = parseInt(diaMatch[1], 10);
-    }
-
-    const totalDias = (anos * 365) + (meses * 30) + dias;
-
-    if (totalDias === 0) {
-        // Handle cases like "0 dias" or if no match was found.
-        // Check if the original string was just a number.
-        const numericValue = parseFloat(tenureStr);
-        if (!isNaN(numericValue)) {
-            return numericValue; // Assume it's already in days if it's just a number.
-        }
-        return null;
-    }
-
-    return totalDias;
-}
-
 export async function importExitsAction(data: any[]) {
     if (!data || data.length === 0) {
         return { success: false, message: 'Nenhum dado para importar.' };
@@ -155,6 +127,7 @@ export async function importExitsAction(data: any[]) {
     const batch = writeBatch(db);
     const exitsCollection = collection(db, 'exits');
     let count = 0;
+    let errors = [];
 
     for (const rawItem of data) {
         try {
@@ -165,27 +138,42 @@ export async function importExitsAction(data: any[]) {
                     item[newKey] = rawItem[key];
                 }
             }
-
-
+            
             item.nome_completo = String(item['nomecompleto'] || '').trim();
-            item.tipo = String(item['tipo'] || '').trim();
+            if (!item.nome_completo) continue;
 
-            if (!item.nome_completo) {
-                continue; 
+            const admissionDateStr = excelDateToYYYYMMDD(item['dataadmissao']);
+            const exitDateStr = excelDateToYYYYMMDD(item['datadesligamento']);
+
+            if (!admissionDateStr || !exitDateStr) {
+                errors.push(`Registro '${item.nome_completo}' ignorado: data de admissão ou desligamento inválida.`);
+                continue;
             }
+            
+            const admissionDate = parseISO(admissionDateStr);
+            const exitDate = parseISO(exitDateStr);
 
-            item.data_desligamento = excelDateToYYYYMMDD(item['datadesligamento']);
+            if (exitDate <= admissionDate) {
+                 errors.push(`Registro '${item.nome_completo}' ignorado: data de desligamento deve ser posterior à de admissão.`);
+                continue;
+            }
+            
+            const tenureInDays = differenceInDays(exitDate, admissionDate);
+
+            item.data_admissao = admissionDateStr;
+            item.data_desligamento = exitDateStr;
+            item.tempo_empresa = tenureInDays;
+            
+            item.tipo = String(item['tipo'] || '').trim();
             item.lider = String(item['lider'] || '').trim();
             item.sexo = String(item['sexo'] || '').trim();
             item.idade = Number(item['idade']) || null;
+            item.motivo = String(item['motivo'] || item['motivodesligamento'] || '').trim();
             
-            item.tempo_empresa = parseTenureToDays(item['tempodeempresa']);
-
             if (item.tipo === 'pedido_demissao') {
                 item.bairro = String(item['bairro'] || '').trim();
                 item.cargo = String(item['cargo'] || '').trim();
                 item.setor = String(item['setor'] || '').trim();
-                item.motivo = String(item['motivo'] || '').trim();
                 item.trabalhou_em_industria = String(item['trabalhouemindustria'] || '').trim();
                 item.nivel_escolar = String(item['nivelescolar'] || '').trim();
                 item.deslocamento = String(item['deslocamento'] || '').trim();
@@ -198,28 +186,56 @@ export async function importExitsAction(data: any[]) {
                 item.filtro = String(item['filtro'] || '').trim();
             } else if (item.tipo === 'demissao_empresa') {
                 item.turno = String(item['turno'] || '').trim();
-                 item.motivo = String(item['motivodesligamento'] || item['motivo'] || '').trim();
-            } else {
-                continue;
             }
             
             const docRef = doc(exitsCollection);
-            batch.set(docRef, { ...item, createdAt: serverTimestamp() });
+            // We need to clean up the object to avoid saving undefined/extra fields
+            const dataToSave = {
+                nome_completo: item.nome_completo,
+                tipo: item.tipo,
+                data_admissao: item.data_admissao,
+                data_desligamento: item.data_desligamento,
+                tempo_empresa: item.tempo_empresa,
+                lider: item.lider,
+                sexo: item.sexo,
+                idade: item.idade,
+                motivo: item.motivo,
+                bairro: item.bairro,
+                cargo: item.cargo,
+                setor: item.setor,
+                trabalhou_em_industria: item.trabalhou_em_industria,
+                nivel_escolar: item.nivel_escolar,
+                deslocamento: item.deslocamento,
+                nota_lideranca: item.nota_lideranca,
+                obs_lideranca: item.obs_lideranca,
+                nota_rh: item.nota_rh,
+                obs_rh: item.obs_rh,
+                nota_empresa: item.nota_empresa,
+                comentarios: item.comentarios,
+                filtro: item.filtro,
+                turno: item.turno,
+                createdAt: serverTimestamp()
+            };
+
+            batch.set(docRef, dataToSave);
             count++;
 
         } catch (error) {
             console.error('Error processing row, skipping:', rawItem, error);
+            errors.push(`Erro ao processar a linha para '${rawItem['Nome Completo'] || 'desconhecido'}'.`);
         }
     }
     
     if (count === 0) {
-        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique o formato da planilha, os nomes das abas e se a coluna "nome completo" está preenchida.' };
+        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique se as colunas "Nome Completo", "Data Admissao" e "Data Desligamento" estão preenchidas corretamente.' };
     }
 
     try {
         await batch.commit();
         revalidatePath('/dashboard');
-        return { success: true, message: `${count} registros importados com sucesso.` };
+        const successMessage = `${count} registros importados com sucesso.`;
+        const errorMessage = errors.length > 0 ? ` ${errors.length} registros foram ignorados.` : '';
+        return { success: true, message: successMessage + errorMessage };
     } catch (error: any) {
         console.error('Error committing batch to Firestore: ', error);
         return {
@@ -228,7 +244,6 @@ export async function importExitsAction(data: any[]) {
         };
     }
 }
-
 
 export async function clearAllExitsAction() {
     try {

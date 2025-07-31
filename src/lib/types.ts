@@ -1,8 +1,9 @@
 export interface PedidoDemissao {
   id: string;
   tipo: 'pedido_demissao';
+  data_admissao: string;
   data_desligamento: string;
-  tempo_empresa: number; // Changed to number
+  tempo_empresa: number; // in days
   nome_completo: string;
   bairro: string;
   idade: number;
@@ -26,14 +27,15 @@ export interface PedidoDemissao {
 export interface DemissaoEmpresa {
   id: string;
   tipo: 'demissao_empresa';
+  data_admissao: string;
   data_desligamento: string;
   nome_completo: string;
   lider: string;
   turno: 'Manhã' | 'Tarde' | 'Noite';
   sexo: 'Masculino' | 'Feminino' | 'Outro';
   idade: number;
-  tempo_empresa: number; // Changed to number
-  motivo_desligamento: string;
+  tempo_empresa: number; // in days
+  motivo: string;
 }
 
 export type ExitData = PedidoDemissao | DemissaoEmpresa;

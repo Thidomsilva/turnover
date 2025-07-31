@@ -40,8 +40,8 @@ export default function ExitForm() {
     defaultValues: {
       tipo: 'pedido_demissao',
       nome_completo: '',
+      data_admissao: '',
       data_desligamento: new Date().toISOString().split('T')[0],
-      tempo_empresa: '',
       lider: '',
       setor: '',
       cargo: '',
@@ -100,21 +100,35 @@ export default function ExitForm() {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="nome_completo"
+          render={({ field }) => (
+              <FormItem>
+              <FormLabel>Nome Completo do Colaborador</FormLabel>
+              <FormControl>
+                  <Input placeholder="Ex: João da Silva" {...field} />
+              </FormControl>
+              <FormMessage />
+              </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
+          <FormField
             control={form.control}
-            name="nome_completo"
+            name="data_admissao"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Nome Completo do Colaborador</FormLabel>
+                <FormLabel>Data de Admissão</FormLabel>
                 <FormControl>
-                    <Input placeholder="Ex: João da Silva" {...field} />
+                    <Input type="date" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
             )}
-            />
-            <FormField
+          />
+          <FormField
             control={form.control}
             name="data_desligamento"
             render={({ field }) => (
@@ -126,7 +140,7 @@ export default function ExitForm() {
                 <FormMessage />
                 </FormItem>
             )}
-            />
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -167,19 +181,6 @@ export default function ExitForm() {
                     <FormLabel>Líder Direto</FormLabel>
                     <FormControl>
                         <Input placeholder="Ex: Maria Oliveira" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="tempo_empresa"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Tempo de Empresa (anos)</FormLabel>
-                    <FormControl>
-                        <Input placeholder="Ex: 2.5" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

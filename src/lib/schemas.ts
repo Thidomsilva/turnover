@@ -6,8 +6,8 @@ export const exitFormSchema = z.object({
     required_error: 'O tipo de desligamento é obrigatório.',
   }),
   nome_completo: z.string().min(3, { message: 'O nome completo é obrigatório.' }),
-  data_desligamento: z.string().min(1, { message: 'A data é obrigatória.' }),
-  tempo_empresa: z.string().min(1, { message: 'O tempo de empresa (em anos, ex: 1.5) é obrigatório.'}),
+  data_admissao: z.string().min(1, { message: 'A data de admissão é obrigatória.' }),
+  data_desligamento: z.string().min(1, { message: 'A data de desligamento é obrigatória.' }),
   lider: z.string().min(1, { message: 'O líder é obrigatório.' }),
   setor: z.string().min(1, { message: 'O setor é obrigatório.' }),
   cargo: z.string().min(1, { message: 'O cargo é obrigatório.' }),
@@ -16,4 +16,7 @@ export const exitFormSchema = z.object({
   nota_rh: z.coerce.number().min(1).max(10),
   nota_empresa: z.coerce.number().min(1).max(10),
   comentarios: z.string().optional(),
+}).refine((data) => new Date(data.data_desligamento) > new Date(data.data_admissao), {
+  message: "A data de desligamento deve ser posterior à data de admissão.",
+  path: ["data_desligamento"],
 });
