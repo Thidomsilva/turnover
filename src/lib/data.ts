@@ -1,4 +1,5 @@
 
+
 import { type ExitData, type PedidoDemissao } from '@/lib/types';
 import { format, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,13 +34,16 @@ export async function getDashboardData() {
     const totalPedidos = allExits.filter(d => d.tipo === 'pedido_demissao').length;
     const totalEmpresa = allExits.filter(d => d.tipo === 'demissao_empresa').length;
     
-    const tenureDataInMonths = allExits
+    // Filter for valid tenure data (in years) and convert to months for calculation.
+    const tenureDataInYears = allExits
         .map(p => p.tempo_empresa)
-        .filter((months): months is number => typeof months === 'number' && isFinite(months) && months > 0);
+        .filter((years): years is number => typeof years === 'number' && isFinite(years) && years > 0);
 
-    const totalTenureInMonths = tenureDataInMonths.reduce((acc, curr) => acc + curr, 0);
-    const avgTenure = tenureDataInMonths.length > 0 
-        ? Math.round(totalTenureInMonths / tenureDataInMonths.length) 
+    const totalTenureInYears = tenureDataInYears.reduce((acc, curr) => acc + curr, 0);
+    
+    // Calculate average tenure in months
+    const avgTenure = tenureDataInYears.length > 0 
+        ? Math.round((totalTenureInYears / tenureDataInYears.length) * 12) 
         : 0;
 
 

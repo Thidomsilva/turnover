@@ -67,6 +67,7 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
         const exitsCollection = collection(db, 'exits');
         await addDoc(exitsCollection, {
             ...validatedFields.data,
+            tempo_empresa: parseFloat(String(validatedFields.data.tempo_empresa).replace(',', '.')),
             createdAt: serverTimestamp(),
         });
 
@@ -105,42 +106,17 @@ function excelDateToYYYYMMDD(serial: any): string {
     return `${year}-${month}-${day}`;
 }
 
-// Robust function to parse tenure string to total months
-function parseTenureToMonths(tenureStr: any): number | null {
-    if (!tenureStr || typeof tenureStr !== 'string' || tenureStr.trim() === '') {
+// Robust function to parse tenure string to a number (in years)
+function parseTenureToYears(tenure: any): number | null {
+    if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
         return null;
     }
-
-    const text = String(tenureStr).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    let totalMonths = 0;
-
-    const yearMatch = text.match(/(\d+)\s*ano(s?)/);
-    if (yearMatch) {
-        totalMonths += parseInt(yearMatch[1], 10) * 12;
+    const numericValue = parseFloat(String(tenure).replace(',', '.'));
+    if (!isNaN(numericValue) && isFinite(numericValue)) {
+        // Assume the numeric value from Excel is already in years.
+        return numericValue;
     }
-
-    const monthMatch = text.match(/(\d+)\s*mes(es)?/);
-    if (monthMatch) {
-        totalMonths += parseInt(monthMatch[1], 10);
-    }
-    
-    const dayMatch = text.match(/(\d+)\s*dia(s?)/);
-    if (dayMatch) {
-        totalMonths += parseInt(dayMatch[1], 10) / 30;
-    }
-    
-    if (totalMonths === 0) {
-        const numericValue = parseFloat(text.replace(',', '.'));
-        if (!isNaN(numericValue)) {
-            // Assuming the number might represent years if no unit is specified
-            // This is a guess, but better than nothing.
-            // If it's a small number, could be years. If large, could be days.
-            // For now, let's assume it's years if it's a bare number.
-            return Math.round(numericValue * 12);
-        }
-    }
-
-    return totalMonths > 0 ? Math.round(totalMonths) : null;
+    return null;
 }
 
 
@@ -175,7 +151,7 @@ export async function importExitsAction(data: any[]) {
             item.lider = String(item['lider'] || '').trim();
             item.sexo = String(item['sexo'] || '').trim();
             item.idade = Number(item['idade']) || 0;
-            item.tempo_empresa = parseTenureToMonths(item['tempodeempresa']);
+            item.tempo_empresa = parseTenureToYears(item['tempodeempresa']);
 
             if (item.tipo === 'pedido_demissao') {
                 item.bairro = String(item['bairro'] || '').trim();
@@ -254,3 +230,4 @@ export async function clearAllExitsAction() {
         }
     }
 }
+
