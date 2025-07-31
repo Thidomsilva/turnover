@@ -98,11 +98,11 @@ export default function DashboardPage() {
       const sheetNames = workbook.SheetNames;
       
       const normalizeString = (str: string) => {
-        return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '');
       }
 
-      const pedidosSheetName = sheetNames.find(name => normalizeString(name) === 'pedido demissao');
-      const demitidosSheetName = sheetNames.find(name => normalizeString(name) === 'demissao empresa');
+      const pedidosSheetName = sheetNames.find(name => normalizeString(name) === 'pedidodemissao');
+      const demitidosSheetName = sheetNames.find(name => normalizeString(name) === 'demissaoempresa');
 
       if (!pedidosSheetName && !demitidosSheetName) {
         toast({
@@ -115,11 +115,10 @@ export default function DashboardPage() {
 
       const processSheet = (sheetName: string) => {
           const sheet = workbook.Sheets[sheetName];
-          // Use header: 1 to get array of arrays, then process headers
           const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
           if (rows.length < 2) return [];
 
-          const header = rows[0].map(h => typeof h === 'string' ? h.toLowerCase().trim() : String(h).toLowerCase().trim());
+          const header = rows[0].map(h => typeof h === 'string' ? h.toLowerCase().trim().replace(/\s+/g, '') : String(h).toLowerCase().trim().replace(/\s+/g, ''));
           const dataRows = rows.slice(1);
           
           return dataRows.map(row => {
