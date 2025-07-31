@@ -15,7 +15,7 @@ import { ExitTypeChart } from '@/components/exit-type-chart';
 import { getDashboardData } from '@/lib/data';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, Upload } from 'lucide-react';
+import { FileDown, PlusCircle, Upload, FileText, BrainCircuit } from 'lucide-react';
 import ExitForm from '@/components/exit-form';
 
 export default function DashboardPage() {
@@ -35,10 +35,11 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
+           <Button variant="outline" size="sm" onClick={() => document.getElementById('file-upload')?.click()}>
             <Upload className="mr-2 h-4 w-4" />
             Importar Histórico
           </Button>
+          <input type="file" id="file-upload" className="hidden" />
           <Button variant="outline" size="sm">
             <FileDown className="mr-2 h-4 w-4" />
             Exportar
@@ -67,10 +68,10 @@ export default function DashboardPage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="reports" disabled>
+          <TabsTrigger value="reports">
             Relatórios
           </TabsTrigger>
-          <TabsTrigger value="analytics" disabled>
+          <TabsTrigger value="analytics">
             Análise Preditiva
           </TabsTrigger>
         </TabsList>
@@ -111,7 +112,7 @@ export default function DashboardPage() {
                 <CardDescription>
                   As últimas {recentExits.length} saídas registradas.
                 </CardDescription>
-              </CardHeader>
+              </Header>
               <CardContent>
                 <RecentExits data={recentExits} />
               </CardContent>
@@ -120,6 +121,63 @@ export default function DashboardPage() {
                 <AiInsightsCard />
             </div>
           </div>
+        </TabsContent>
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Relatórios</CardTitle>
+              <CardDescription>
+                Exporte relatórios detalhados sobre os desligamentos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-4">
+                  <FileText className="h-6 w-6 text-primary" />
+                  <div>
+                    <h3 className="font-semibold">Relatório Geral de Turnover</h3>
+                    <p className="text-sm text-muted-foreground">Inclui todos os dados de desligamento do período selecionado.</p>
+                  </div>
+                </div>
+                <Button variant="outline">
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Exportar CSV
+                </Button>
+              </div>
+               <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-4">
+                  <FileText className="h-6 w-6 text-primary" />
+                  <div>
+                    <h3 className="font-semibold">Relatório por Motivo</h3>
+                    <p className="text-sm text-muted-foreground">Agrupa os desligamentos pelos motivos informados.</p>
+                  </div>
+                </div>
+                <Button variant="outline">
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Exportar CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="analytics" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Análise Preditiva de Turnover</CardTitle>
+              <CardDescription>
+                Utilize IA para prever quais colaboradores têm maior risco de saída.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
+                <BrainCircuit className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold">Em breve</h3>
+                <p className="text-muted-foreground">
+                  Estamos trabalhando para trazer recursos de análise preditiva e identificar tendências de turnover.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </>
