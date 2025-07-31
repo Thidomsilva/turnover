@@ -261,8 +261,13 @@ export async function clearAllExitsAction() {
     }
 }
 
-export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) {
-    const validatedFields = serverUserFormSchema.safeParse(data);
+const addUserFormSchema = serverUserFormSchema.extend({
+  role: z.enum(['Administrador', 'Usuário']),
+});
+
+
+export async function addUserAction(data: z.infer<typeof addUserFormSchema>) {
+    const validatedFields = addUserFormSchema.safeParse(data);
 
     if (!validatedFields.success) {
         return {
@@ -271,7 +276,7 @@ export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) 
         };
     }
 
-    const { name, email, password } = validatedFields.data;
+    const { name, email, password, role } = validatedFields.data;
 
     try {
         const adminApp = getAdminApp();
@@ -290,7 +295,7 @@ export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) 
             uid: userRecord.uid,
             name,
             email,
-            role: "Usuário", // Default role
+            role,
         });
 
         revalidatePath('/settings');
