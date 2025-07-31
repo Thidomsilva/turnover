@@ -34,18 +34,23 @@ export async function getDashboardData() {
     const totalPedidos = allExits.filter(d => d.tipo === 'pedido_demissao').length;
     const totalEmpresa = allExits.filter(d => d.tipo === 'demissao_empresa').length;
     
-    // Filter for 'pedido_demissao' to calculate tenure and ensure tenure data is valid
+    // Filter exits to only include those with valid, positive tenure data for calculation.
     const tenureData = allExits
         .map(p => {
-            if (p.tempo_empresa === null || p.tempo_empresa === undefined) return null;
+            // Ensure the value is not null, undefined, or an empty string.
+            if (p.tempo_empresa === null || p.tempo_empresa === undefined || String(p.tempo_empresa).trim() === '') {
+                return null;
+            }
+            // Convert comma to dot for float parsing and then to a number.
             const years = parseFloat(String(p.tempo_empresa).replace(',', '.'));
+            // Return the number if it's a valid number, otherwise null.
             return isNaN(years) ? null : years;
         })
-        .filter((y): y is number => y !== null && y > 0);
+        .filter((y): y is number => y !== null && y > 0); // Ensure we only have positive numbers.
 
     const totalTenureInYears = tenureData.reduce((acc, curr) => acc + curr, 0);
     const avgTenureInYears = tenureData.length > 0 ? totalTenureInYears / tenureData.length : 0;
-    const avgTenure = Math.round(avgTenureInYears * 12); // Convert to months
+    const avgTenure = Math.round(avgTenureInYears * 12); // Convert to months and round it.
 
 
     // Initialize the last 6 months for the overview chart
