@@ -126,7 +126,18 @@ function parseTenureToMonths(tenureStr: any): number | null {
     
     const dayMatch = text.match(/(\d+)\s*dia(s?)/);
     if (dayMatch) {
-        totalMonths += parseInt(dayMatch[1], 10) / 30; // Approximate days to months
+        totalMonths += parseInt(dayMatch[1], 10) / 30;
+    }
+    
+    if (totalMonths === 0) {
+        const numericValue = parseFloat(text.replace(',', '.'));
+        if (!isNaN(numericValue)) {
+            // Assuming the number might represent years if no unit is specified
+            // This is a guess, but better than nothing.
+            // If it's a small number, could be years. If large, could be days.
+            // For now, let's assume it's years if it's a bare number.
+            return Math.round(numericValue * 12);
+        }
     }
 
     return totalMonths > 0 ? Math.round(totalMonths) : null;
@@ -153,37 +164,37 @@ export async function importExitsAction(data: any[]) {
             }
 
 
-            item.nome_completo = String(item.nomecompleto || '').trim();
-            item.tipo = String(item.tipo || '').trim();
+            item.nome_completo = String(item['nomecompleto'] || '').trim();
+            item.tipo = String(item['tipo'] || '').trim();
 
             if (!item.nome_completo) {
                 continue; 
             }
 
-            item.data_desligamento = excelDateToYYYYMMDD(item.datadesligamento);
-            item.lider = String(item.lider || '').trim();
-            item.sexo = String(item.sexo || '').trim();
-            item.idade = Number(item.idade) || 0;
-            item.tempo_empresa = parseTenureToMonths(item.tempoempresa);
+            item.data_desligamento = excelDateToYYYYMMDD(item['datadesligamento']);
+            item.lider = String(item['lider'] || '').trim();
+            item.sexo = String(item['sexo'] || '').trim();
+            item.idade = Number(item['idade']) || 0;
+            item.tempo_empresa = parseTenureToMonths(item['tempodeempresa']);
 
             if (item.tipo === 'pedido_demissao') {
-                item.bairro = String(item.bairro || '').trim();
-                item.cargo = String(item.cargo || '').trim();
-                item.setor = String(item.setor || '').trim();
-                item.motivo = String(item.motivo || '').trim();
-                item.trabalhou_em_industria = String(item.trabalhouemindustria || '').trim();
-                item.nivel_escolar = String(item.nivelescolar || '').trim();
-                item.deslocamento = String(item.deslocamento || '').trim();
-                item.nota_lideranca = Number(item.notalideranca) || 0;
-                item.obs_lideranca = String(item.obslideranca || '').trim();
-                item.nota_rh = Number(item.notarh) || 0;
-                item.obs_rh = String(item.obsrh || '').trim();
-                item.nota_empresa = Number(item.notaempresa) || 0;
-                item.comentarios = String(item.comentarios || '').trim();
-                item.filtro = String(item.filtro || '').trim();
+                item.bairro = String(item['bairro'] || '').trim();
+                item.cargo = String(item['cargo'] || '').trim();
+                item.setor = String(item['setor'] || '').trim();
+                item.motivo = String(item['motivo'] || '').trim();
+                item.trabalhou_em_industria = String(item['trabalhouemindustria'] || '').trim();
+                item.nivel_escolar = String(item['nivelescolar'] || '').trim();
+                item.deslocamento = String(item['deslocamento'] || '').trim();
+                item.nota_lideranca = Number(item['notalideranca']) || 0;
+                item.obs_lideranca = String(item['obslideranca'] || '').trim();
+                item.nota_rh = Number(item['notarh']) || 0;
+                item.obs_rh = String(item['obsrh'] || '').trim();
+                item.nota_empresa = Number(item['notaempresa']) || 0;
+                item.comentarios = String(item['comentarios'] || '').trim();
+                item.filtro = String(item['filtro'] || '').trim();
             } else if (item.tipo === 'demissao_empresa') {
-                item.turno = String(item.turno || '').trim();
-                item.motivo = String(item.motivodesligamento || '').trim();
+                item.turno = String(item['turno'] || '').trim();
+                item.motivo = String(item['motivodesligamento'] || item['motivo'] || '').trim();
             } else {
                 continue;
             }

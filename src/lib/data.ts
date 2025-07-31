@@ -33,7 +33,6 @@ export async function getDashboardData() {
     const totalPedidos = allExits.filter(d => d.tipo === 'pedido_demissao').length;
     const totalEmpresa = allExits.filter(d => d.tipo === 'demissao_empresa').length;
     
-    // The `tempo_empresa` is now stored in months.
     const tenureDataInMonths = allExits
         .map(p => p.tempo_empresa)
         .filter((months): months is number => typeof months === 'number' && isFinite(months) && months > 0);
