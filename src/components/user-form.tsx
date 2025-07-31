@@ -46,8 +46,6 @@ export default function UserForm() {
             });
             form.reset();
             closeRef.current?.click();
-             // Simple way to refresh user list
-            window.location.reload();
         } else {
              toast({
                 title: "Erro",

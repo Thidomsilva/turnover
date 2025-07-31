@@ -10,6 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getUsersAction } from "@/lib/actions";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import UserForm from "@/components/user-form";
+import { PlusCircle } from "lucide-react";
 
 
 export default async function SettingsPage() {
@@ -32,6 +35,23 @@ export default async function SettingsPage() {
                 Usuários com acesso à plataforma.
               </CardDescription>
             </div>
+             <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle />
+                  Adicionar Usuário
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Novo Usuário</DialogTitle>
+                  <DialogDescription>
+                    Preencha os dados abaixo para criar um novo acesso.
+                  </DialogDescription>
+                </DialogHeader>
+                <UserForm />
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
