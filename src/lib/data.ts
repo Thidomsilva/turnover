@@ -5,17 +5,31 @@ import { ptBR } from 'date-fns/locale';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
-export async function getDashboardData() {
+export async function getDashboardData(filters?: { year?: number, month?: number }) {
   try {
     const exitsCollection = collection(db, 'exits');
     const querySnapshot = await getDocs(query(exitsCollection, orderBy('data_desligamento', 'desc')));
     
-    const allExits: ExitData[] = querySnapshot.docs.map(doc => ({
+    let allExits: ExitData[] = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     } as ExitData));
 
-    if (allExits.length === 0) {
+    // Apply filters
+    if (filters?.year) {
+      allExits = allExits.filter(exit => {
+        if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return false;
+        return parseISO(exit.data_desligamento).getFullYear() === filters.year;
+      });
+    }
+    if (filters?.month !== undefined) {
+      allExits = allExits.filter(exit => {
+        if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return false;
+        return parseISO(exit.data_desligamento).getMonth() === filters.month;
+      });
+    }
+
+    if (allExits.length === 0 && !filters) {
       return {
         totalExits: 0,
         totalPedidos: 0,
@@ -26,6 +40,7 @@ export async function getDashboardData() {
         exitReasons: [],
         exitsByType: [],
         allExits: [],
+        exitsBySector: [],
       }
     }
 
@@ -46,10 +61,10 @@ export async function getDashboardData() {
     // Convert average tenure from days to months for display
     const avgTenure = Math.round(avgTenureInDays / 30);
 
-    const exitsByMonth = Array.from({ length: 6 }).map((_, i) => {
-      const d = subMonths(new Date(), i);
+    const exitsByMonth = Array.from({ length: 12 }).map((_, i) => {
+      const d = new Date(filters?.year || new Date().getFullYear(), i, 1);
       return { name: format(d, 'MMM', { locale: ptBR }), pedido: 0, empresa: 0 };
-    }).reverse();
+    });
 
     allExits.forEach(exit => {
        if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return;
@@ -69,6 +84,18 @@ export async function getDashboardData() {
           console.warn(`Could not parse date for exit ${exit.id}: ${exit.data_desligamento}`);
       }
     });
+
+    const exitsBySector = allExits.reduce((acc, curr) => {
+        const sector = curr.setor || "Não informado";
+        const found = acc.find(item => item.name === sector);
+        if (found) {
+            found.value++;
+        } else {
+            acc.push({ name: sector, value: 1 });
+        }
+        return acc;
+    }, [] as { name: string; value: number }[]).sort((a,b) => b.value - a.value);
+
 
     const exitReasons = allExits.reduce((acc, curr) => {
         const reason = curr.motivo;
@@ -102,10 +129,12 @@ export async function getDashboardData() {
       recentExits,
       exitReasons,
       exitsByType,
-      allExits,
+      allExits: querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExitData)), // Return all for year list
+      exitsBySector,
     };
   } catch (error) {
     console.error("Failed to fetch and process dashboard data:", error);
+    // In case of error, return a default empty state
     return {
       totalExits: 0,
       totalPedidos: 0,
@@ -116,6 +145,9 @@ export async function getDashboardData() {
       exitReasons: [],
       exitsByType: [],
       allExits: [],
+      exitsBySector: [],
     };
   }
 }
+
+    

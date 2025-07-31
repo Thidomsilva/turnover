@@ -46,6 +46,8 @@ import { type ExitData } from '@/lib/types';
 import { format, parse, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ExitsBySectorChart } from '@/components/exits-by-sector-chart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
@@ -61,11 +63,19 @@ export default function DashboardPage() {
   const [monthlyExits, setMonthlyExits] = useState<ExitData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [filterYear, setFilterYear] = useState<string>(new Date().getFullYear().toString());
+  const [filterMonth, setFilterMonth] = useState<string>('all');
+
+  const availableYears = Array.from(new Set(data?.allExits.map(e => e.data_desligamento ? new Date(e.data_desligamento).getFullYear().toString() : new Date().getFullYear().toString()) || [new Date().getFullYear().toString()])).sort().reverse();
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const dashboardData = await getDashboardData();
+        const year = filterYear ? parseInt(filterYear, 10) : undefined;
+        const month = filterMonth !== 'all' ? parseInt(filterMonth, 10) : undefined;
+
+        const dashboardData = await getDashboardData({ year, month });
         setData(dashboardData);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -80,7 +90,7 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  }, [toast]);
+  }, [toast, filterYear, filterMonth]);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -201,7 +211,7 @@ export default function DashboardPage() {
     });
   }
 
-  if (loading) {
+  if (loading && !data) {
     return (
         <div className="flex items-center justify-center h-full min-h-[80vh]">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -253,26 +263,27 @@ export default function DashboardPage() {
     avgTenure,
     exitsByMonth,
     recentExits,
-    exitsByType
+    exitsByType,
+    exitsBySector
   } = data;
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex items-center space-x-2">
-           <Button variant="outline" size="sm" onClick={handleImportClick} disabled={isPending}>
-            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            {isPending ? 'Importando...' : 'Importar Histórico'}
+           <Button variant="outline" size="sm" onClick={handleImportClick} disabled={isPending || loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            {loading ? 'Carregando...' : (isPending ? 'Importando...' : 'Importar Histórico')}
           </Button>
           <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleFileChange} />
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" disabled={loading}>
             <FileDown className="mr-2 h-4 w-4" />
             Exportar
           </Button>
             <Sheet>
             <SheetTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" disabled={loading}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Novo Desligamento
               </Button>
@@ -291,7 +302,7 @@ export default function DashboardPage() {
           </Sheet>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-               <Button variant="destructive" size="sm" disabled={isPending}>
+               <Button variant="destructive" size="sm" disabled={isPending || loading}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Limpar Dados
                 </Button>
@@ -305,8 +316,8 @@ export default function DashboardPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleClearData} disabled={isPending}>
-                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar'}
+                <AlertDialogAction onClick={handleClearData} disabled={isPending || loading}>
+                  {isPending || loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirmar'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -314,15 +325,49 @@ export default function DashboardPage() {
         </div>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="reports">
-            Relatórios
-          </TabsTrigger>
-          <TabsTrigger value="analytics">
-            Análise Preditiva
-          </TabsTrigger>
-        </TabsList>
+        <div className='flex justify-between items-center'>
+            <TabsList>
+                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                <TabsTrigger value="reports">
+                    Relatórios
+                </TabsTrigger>
+                <TabsTrigger value="analytics">
+                    Análise Preditiva
+                </TabsTrigger>
+            </TabsList>
+            <div className='flex items-center space-x-2'>
+                <Select value={filterMonth} onValueChange={setFilterMonth} disabled={loading}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os Meses</SelectItem>
+                        <SelectItem value="0">Janeiro</SelectItem>
+                        <SelectItem value="1">Fevereiro</SelectItem>
+                        <SelectItem value="2">Março</SelectItem>
+                        <SelectItem value="3">Abril</SelectItem>
+                        <SelectItem value="4">Maio</SelectItem>
+                        <SelectItem value="5">Junho</SelectItem>
+                        <SelectItem value="6">Julho</SelectItem>
+                        <SelectItem value="7">Agosto</SelectItem>
+                        <SelectItem value="8">Setembro</SelectItem>
+                        <SelectItem value="9">Outubro</SelectItem>
+                        <SelectItem value="10">Novembro</SelectItem>
+                        <SelectItem value="11">Dezembro</SelectItem>
+                    </SelectContent>
+                </Select>
+                 <Select value={filterYear} onValueChange={setFilterYear} disabled={loading}>
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableYears.map(year => (
+                            <SelectItem key={year} value={year}>{year}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Total de Desligamentos" value={totalExits.toString()} description="Total de saídas no período" icon="Users" />
@@ -330,17 +375,26 @@ export default function DashboardPage() {
             <StatCard title="Demissões pela Empresa" value={totalEmpresa.toString()} description="Iniciados pela empresa" icon="UserX" />
             <StatCard title="Tempo Médio de Casa" value={`${avgTenure} meses`} description="Duração média no cargo" icon="Clock" />
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            <Card>
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="col-span-1">
               <CardHeader>
-                <CardTitle>Visão Geral de Rotatividade</CardTitle>
-                <CardDescription>Clique em uma barra para ver detalhes do mês.</CardDescription>
+                <CardTitle>Rotatividade por Mês</CardTitle>
+                <CardDescription>Clique em uma barra para ver detalhes.</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
                 <OverviewChart data={exitsByMonth} onBarClick={handleBarClick} />
               </CardContent>
             </Card>
-            </div>
+             <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Rotatividade por Setor</CardTitle>
+                <CardDescription>Total de desligamentos em cada setor.</CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2">
+                <ExitsBySectorChart data={exitsBySector} />
+              </CardContent>
+            </Card>
+          </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <Card className="col-span-4 h-full">
               <CardHeader>
@@ -463,3 +517,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
