@@ -91,7 +91,8 @@ export default function DashboardPage() {
                 title: "Sucesso!",
                 description: result.message,
             });
-            window.location.reload();
+            // Give toast time to show before reloading
+            setTimeout(() => window.location.reload(), 1000);
         } else {
              toast({
                 title: "Erro",
@@ -103,7 +104,7 @@ export default function DashboardPage() {
     };
     reader.readAsBinaryString(file);
     // Reset file input to allow re-uploading the same file
-    e.target.value = '';
+    if(e.target) e.target.value = '';
   }
 
   if (loading) {
