@@ -10,7 +10,7 @@ import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch,
 import { revalidatePath } from 'next/cache';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
 import { getAuth } from 'firebase-admin/auth';
-import { adminApp } from './firebase-admin';
+import { getAdminApp } from './firebase-admin';
 
 export async function getAiInsights() {
   try {
@@ -274,6 +274,7 @@ export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) 
     const { name, email, password } = validatedFields.data;
 
     try {
+        const adminApp = getAdminApp();
         const auth = getAuth(adminApp);
 
         // Create user in Firebase Authentication
