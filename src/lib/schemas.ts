@@ -6,6 +6,7 @@ export const exitFormSchema = z.object({
   }),
   nome_completo: z.string().min(3, { message: 'O nome completo é obrigatório.' }),
   data_desligamento: z.string().min(1, { message: 'A data é obrigatória.' }),
+  tempo_empresa: z.string().min(1, { message: 'O tempo de empresa é obrigatório.'}),
   lider: z.string().min(1, { message: 'O líder é obrigatório.' }),
   setor: z.string().min(1, { message: 'O setor é obrigatório.' }),
   cargo: z.string().min(1, { message: 'O cargo é obrigatório.' }),

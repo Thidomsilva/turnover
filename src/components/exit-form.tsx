@@ -41,6 +41,7 @@ export default function ExitForm() {
       tipo: 'pedido_demissao',
       nome_completo: '',
       data_desligamento: new Date().toISOString().split('T')[0],
+      tempo_empresa: '',
       lider: '',
       setor: '',
       cargo: '',
@@ -171,20 +172,33 @@ export default function ExitForm() {
                     </FormItem>
                 )}
             />
-            <FormField
+             <FormField
                 control={form.control}
-                name="motivo"
+                name="tempo_empresa"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Motivo do Desligamento</FormLabel>
+                    <FormLabel>Tempo de Empresa (anos)</FormLabel>
                     <FormControl>
-                        <Input placeholder="Ex: Nova proposta" {...field} />
+                        <Input placeholder="Ex: 2.5" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
             />
         </div>
+        <FormField
+            control={form.control}
+            name="motivo"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Motivo do Desligamento</FormLabel>
+                <FormControl>
+                    <Input placeholder="Ex: Nova proposta" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+        />
 
         <h3 className="text-lg font-medium pt-4 border-t">Avaliações</h3>
         <p className="text-sm text-muted-foreground -mt-4">Visível apenas para "Pedido de Demissão".</p>
