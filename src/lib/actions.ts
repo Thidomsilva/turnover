@@ -1,3 +1,4 @@
+
 'use server';
 
 import { generateExitInsights, type ExitDataInput } from '@/ai/flows/generate-exit-insights';
@@ -118,43 +119,50 @@ export async function importExitsAction(data: any[]) {
 
     for (const rawItem of data) {
         try {
+             // Create a new object with lowercase keys
             const item: { [key: string]: any } = {};
+            for (const key in rawItem) {
+                if (Object.prototype.hasOwnProperty.call(rawItem, key)) {
+                    item[key.toLowerCase().trim()] = rawItem[key];
+                }
+            }
+
 
             // Normalize core fields first
-            item.nome_completo = String(rawItem.nome_completo || '').trim();
-            item.tipo = String(rawItem.tipo || '').trim();
+            item.nome_completo = String(item.nome_completo || '').trim();
+            item.tipo = String(item.tipo || '').trim();
 
             if (!item.nome_completo) {
                 continue; // Skip rows without a name
             }
 
-            item.data_desligamento = excelDateToYYYYMMDD(rawItem.data_desligamento);
-            item.lider = String(rawItem.lider || '').trim();
-            item.sexo = String(rawItem.sexo || '').trim();
-            item.idade = Number(rawItem.idade) || 0;
-            item.tempo_empresa = String(rawItem.tempo_empresa || '0');
+            item.data_desligamento = excelDateToYYYYMMDD(item.data_desligamento);
+            item.lider = String(item.lider || '').trim();
+            item.sexo = String(item.sexo || '').trim();
+            item.idade = Number(item.idade) || 0;
+            item.tempo_empresa = String(item.tempo_empresa || '0');
 
             if (item.tipo === 'pedido_demissao') {
                 // Process fields specific to "pedido_demissao"
-                item.bairro = String(rawItem.bairro || '').trim();
-                item.cargo = String(rawItem.cargo || '').trim();
-                item.setor = String(rawItem.setor || '').trim();
-                item.motivo = String(rawItem.motivo || '').trim();
-                item.trabalhou_em_industria = String(rawItem.trabalhou_em_industria || '').trim();
-                item.nivel_escolar = String(rawItem.nivel_escolar || '').trim();
-                item.deslocamento = String(rawItem.deslocamento || '').trim();
-                item.nota_lideranca = Number(rawItem.nota_lideranca) || 0;
-                item.obs_lideranca = String(rawItem.obs_lideranca || '').trim();
-                item.nota_rh = Number(rawItem.nota_rh) || 0;
-                item.obs_rh = String(rawItem.obs_rh || '').trim();
-                item.nota_empresa = Number(rawItem.nota_empresa) || 0;
-                item.comentarios = String(rawItem.comentarios || '').trim();
-                item.filtro = String(rawItem.filtro || '').trim();
+                item.bairro = String(item.bairro || '').trim();
+                item.cargo = String(item.cargo || '').trim();
+                item.setor = String(item.setor || '').trim();
+                item.motivo = String(item.motivo || '').trim();
+                item.trabalhou_em_industria = String(item.trabalhou_em_industria || '').trim();
+                item.nivel_escolar = String(item.nivel_escolar || '').trim();
+                item.deslocamento = String(item.deslocamento || '').trim();
+                item.nota_lideranca = Number(item.nota_lideranca) || 0;
+                item.obs_lideranca = String(item.obs_lideranca || '').trim();
+                item.nota_rh = Number(item.nota_rh) || 0;
+                item.obs_rh = String(item.obs_rh || '').trim();
+                item.nota_empresa = Number(item.nota_empresa) || 0;
+                item.comentarios = String(item.comentarios || '').trim();
+                item.filtro = String(item.filtro || '').trim();
             } else if (item.tipo === 'demissao_empresa') {
                 // Process fields specific to "demissao_empresa"
-                item.turno = String(rawItem.turno || '').trim();
+                item.turno = String(item.turno || '').trim();
                 // Map `motivo_desligamento` to `motivo` for consistency in the database
-                item.motivo = String(rawItem.motivo_desligamento || '').trim();
+                item.motivo = String(item.motivo_desligamento || '').trim();
             } else {
                 // Skip if type is not recognized
                 continue;

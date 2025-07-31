@@ -98,7 +98,7 @@ export default function DashboardPage() {
       const sheetNames = workbook.SheetNames;
       
       const normalizeString = (str: string) => {
-        return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
+        return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       }
 
       const pedidosSheetName = sheetNames.find(name => normalizeString(name) === 'pedido demissao');
@@ -112,9 +112,27 @@ export default function DashboardPage() {
         });
         return;
       }
+
+      const processSheet = (sheetName: string) => {
+          const sheet = workbook.Sheets[sheetName];
+          // Use header: 1 to get array of arrays, then process headers
+          const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
+          if (rows.length < 2) return [];
+
+          const header = rows[0].map(h => typeof h === 'string' ? h.toLowerCase().trim() : String(h).toLowerCase().trim());
+          const dataRows = rows.slice(1);
+          
+          return dataRows.map(row => {
+              const rowData: { [key: string]: any } = {};
+              header.forEach((key, index) => {
+                  rowData[key] = row[index];
+              });
+              return rowData;
+          });
+      };
       
-      const pedidosData = pedidosSheetName ? XLSX.utils.sheet_to_json(workbook.Sheets[pedidosSheetName]) : [];
-      const demitidosData = demitidosSheetName ? XLSX.utils.sheet_to_json(workbook.Sheets[demitidosSheetName]) : [];
+      const pedidosData = pedidosSheetName ? processSheet(pedidosSheetName) : [];
+      const demitidosData = demitidosSheetName ? processSheet(demitidosSheetName) : [];
 
       const allData = [
         ...pedidosData.map((row: any) => ({ ...row, tipo: 'pedido_demissao' })),
