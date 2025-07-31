@@ -2,13 +2,15 @@
 'use server';
 
 import { generateExitInsights, type ExitDataInput } from '@/ai/flows/generate-exit-insights';
-import type { PedidoDemissao } from './types';
-import { exitFormSchema } from './schemas';
+import type { PedidoDemissao, User } from './types';
+import { exitFormSchema, userFormSchema as serverUserFormSchema } from './schemas';
 import { z } from 'zod';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc, setDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
+import { getAuth } from 'firebase-admin/auth';
+import { adminApp } from './firebase-admin';
 
 export async function getAiInsights() {
   try {
@@ -66,9 +68,16 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
 
     try {
         const { data_admissao, data_desligamento, ...rest } = validatedFields.data;
-        const admissionDate = parseISO(data_admissao);
-        const exitDate = parseISO(data_desligamento);
-        const tenureInDays = differenceInDays(exitDate, admissionDate);
+        
+        let tenureInDays = null;
+        if (data_admissao && data_desligamento) {
+            const admissionDate = parseISO(data_admissao);
+            const exitDate = parseISO(data_desligamento);
+            if(isValid(admissionDate) && isValid(exitDate)) {
+               tenureInDays = differenceInDays(exitDate, admissionDate);
+            }
+        }
+
 
         const exitsCollection = collection(db, 'exits');
         await addDoc(exitsCollection, {
@@ -148,13 +157,25 @@ export async function importExitsAction(data: any[]) {
             const nomeCompleto = String(item['nomecompleto'] || '').trim();
             if (!nomeCompleto) continue;
 
-            const tenureInDays = Number(item['tempodeempresa']);
+            const admissionDateStr = excelDateToYYYYMMDD(item['dataadmissao']);
+            const exitDateStr = excelDateToYYYYMMDD(item['datadesligamento']);
+            let tenureInDays = null;
+
+            if (admissionDateStr && exitDateStr) {
+                const admissionDate = parseISO(admissionDateStr);
+                const exitDate = parseISO(exitDateStr);
+                if(isValid(admissionDate) && isValid(exitDate)) {
+                    tenureInDays = differenceInDays(exitDate, admissionDate);
+                }
+            } else if (item['tempodeempresa'] && !isNaN(Number(item['tempodeempresa']))) {
+                 tenureInDays = Number(item['tempodeempresa']);
+            }
             
             const dataToSave = {
                 nome_completo: nomeCompleto,
-                data_admissao: excelDateToYYYYMMDD(item['dataadmissao']) || null,
-                data_desligamento: excelDateToYYYYMMDD(item['datadesligamento']) || null,
-                tempo_empresa: !isNaN(tenureInDays) ? tenureInDays : null,
+                data_admissao: admissionDateStr,
+                data_desligamento: exitDateStr,
+                tempo_empresa: tenureInDays,
                 tipo: String(item['tipo'] || '').trim() || null,
                 lider: String(item['lider'] || '').trim() || null,
                 sexo: String(item['sexo'] || '').trim() || null,
@@ -191,13 +212,14 @@ export async function importExitsAction(data: any[]) {
         return { success: false, message: `Nenhum registro importado. ${errors.join(' ')}` };
     }
      if (count === 0) {
-        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique se as colunas "Nome Completo" e "Tempo de Empresa" estão preenchidas corretamente.' };
+        return { success: false, message: 'Nenhum registro válido encontrado para importação. Verifique se as colunas necessárias estão preenchidas corretamente.' };
     }
 
 
     try {
         await batch.commit();
         revalidatePath('/dashboard');
+        revalidatePath('/settings');
         const successMessage = `${count} registros importados com sucesso.`;
         const errorMessage = errors.length > 0 ? ` ${errors.length} registros foram ignorados.` : '';
         return { success: true, message: successMessage + errorMessage };
@@ -237,4 +259,77 @@ export async function clearAllExitsAction() {
              message: error.message || "Ocorreu um erro ao limpar o banco de dados.",
         }
     }
+}
+
+export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) {
+    const validatedFields = serverUserFormSchema.safeParse(data);
+
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            message: "Campos inválidos. Falha ao adicionar usuário.",
+        };
+    }
+
+    const { name, email, password } = validatedFields.data;
+
+    try {
+        const auth = getAuth(adminApp);
+
+        // Create user in Firebase Authentication
+        const userRecord = await auth.createUser({
+            email,
+            password,
+            displayName: name,
+        });
+
+        // Save user info in Firestore
+        const userDocRef = doc(db, "users", userRecord.uid);
+        await setDoc(userDocRef, {
+            uid: userRecord.uid,
+            name,
+            email,
+            role: "Usuário", // Default role
+        });
+
+        revalidatePath('/settings');
+
+        return {
+            success: true,
+            message: "Usuário adicionado com sucesso.",
+        };
+
+    } catch (error: any) {
+        console.error("Error adding user: ", error);
+        
+        let errorMessage = "Ocorreu um erro desconhecido.";
+        if (error.code === 'auth/email-already-exists') {
+            errorMessage = "Este e-mail já está em uso por outro usuário.";
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        return {
+             success: false,
+             message: errorMessage,
+        }
+    }
+}
+
+export async function getUsersAction(): Promise<User[]> {
+  try {
+    const usersCollection = collection(db, 'users');
+    const querySnapshot = await getDocs(usersCollection);
+    
+    if (querySnapshot.empty) {
+      return [];
+    }
+    
+    const users = querySnapshot.docs.map(doc => doc.data() as User);
+    return users;
+
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
 }

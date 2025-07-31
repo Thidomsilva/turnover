@@ -15,6 +15,8 @@ export async function getDashboardData(filters?: { year?: number, month?: number
         ...doc.data()
     } as ExitData));
 
+    const originalExitsForYearFilter = [...allExits];
+
     // Apply filters
     if (filters?.year) {
       allExits = allExits.filter(exit => {
@@ -22,7 +24,7 @@ export async function getDashboardData(filters?: { year?: number, month?: number
         return parseISO(exit.data_desligamento).getFullYear() === filters.year;
       });
     }
-    if (filters?.month !== undefined) {
+    if (filters?.month !== undefined && filters.month !== null) {
       allExits = allExits.filter(exit => {
         if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return false;
         return parseISO(exit.data_desligamento).getMonth() === filters.month;
@@ -50,7 +52,7 @@ export async function getDashboardData(filters?: { year?: number, month?: number
     
     const tenureDataInDays = allExits
         .map(p => p.tempo_empresa)
-        .filter((days): days is number => typeof days === 'number' && isFinite(days) && days > 0);
+        .filter((days): days is number => typeof days === 'number' && !isNaN(days) && days > 0);
 
     const totalTenureInDays = tenureDataInDays.reduce((acc, curr) => acc + curr, 0);
     
@@ -61,29 +63,32 @@ export async function getDashboardData(filters?: { year?: number, month?: number
     // Convert average tenure from days to months for display
     const avgTenure = Math.round(avgTenureInDays / 30);
 
-    const exitsByMonth = Array.from({ length: 12 }).map((_, i) => {
-      const d = new Date(filters?.year || new Date().getFullYear(), i, 1);
-      return { name: format(d, 'MMM', { locale: ptBR }), pedido: 0, empresa: 0 };
+    const yearForChart = filters?.year || new Date().getFullYear();
+    const monthsTemplate = Array.from({ length: 12 }).map((_, i) => {
+        const d = new Date(yearForChart, i, 1);
+        return { name: format(d, 'MMM', { locale: ptBR }), pedido: 0, empresa: 0 };
     });
 
-    allExits.forEach(exit => {
-       if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return;
-      
-      try {
-          const exitDate = parseISO(exit.data_desligamento);
-          const exitMonth = format(exitDate, 'MMM', { locale: ptBR });
-          const monthData = exitsByMonth.find(m => m.name === exitMonth);
-          if (monthData) {
-              if (exit.tipo === 'pedido_demissao') {
-                  monthData.pedido += 1;
-              } else if (exit.tipo === 'demissao_empresa') {
-                  monthData.empresa += 1;
-              }
-          }
-      } catch (e) {
-          console.warn(`Could not parse date for exit ${exit.id}: ${exit.data_desligamento}`);
-      }
-    });
+    const exitsByMonth = allExits.reduce((acc, exit) => {
+        if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return acc;
+        
+        try {
+            const exitDate = parseISO(exit.data_desligamento);
+            const exitMonthName = format(exitDate, 'MMM', { locale: ptBR });
+            const monthData = acc.find(m => m.name === exitMonthName);
+            if (monthData) {
+                if (exit.tipo === 'pedido_demissao') {
+                    monthData.pedido += 1;
+                } else if (exit.tipo === 'demissao_empresa') {
+                    monthData.empresa += 1;
+                }
+            }
+        } catch (e) {
+            console.warn(`Could not parse date for exit ${exit.id}: ${exit.data_desligamento}`);
+        }
+        return acc;
+    }, monthsTemplate);
+
 
     const exitsBySector = allExits.reduce((acc, curr) => {
         const sector = curr.setor || "Não informado";
@@ -108,14 +113,10 @@ export async function getDashboardData(filters?: { year?: number, month?: number
         return acc;
     }, [] as { name: string; value: number }[]).sort((a,b) => b.value - a.value).slice(0, 7);
 
-    const exitsByType = [
-        { type: 'Pedido de Demissão', value: totalPedidos, fill: 'hsl(var(--chart-1))' },
-        { type: 'Demissão pela Empresa', value: totalEmpresa, fill: 'hsl(var(--chart-2))' }
-    ]
 
     const recentExits = allExits.slice(0, 5).map(exit => ({
       name: exit.nome_completo,
-      tenure: exit.tempo_empresa ? Math.round(exit.tempo_empresa / 30) : 0,
+      tenure: exit.tempo_empresa && typeof exit.tempo_empresa === 'number' && !isNaN(exit.tempo_empresa) ? Math.round(exit.tempo_empresa / 30) : 0,
       type: exit.tipo === 'pedido_demissao' ? 'Pedido' : 'Empresa',
     }));
 
@@ -127,8 +128,7 @@ export async function getDashboardData(filters?: { year?: number, month?: number
       exitsByMonth,
       recentExits,
       exitReasons,
-      exitsByType,
-      allExits: querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ExitData)), // Return all for year list
+      allExits: originalExitsForYearFilter, // Return all for year list
       exitsBySector,
     };
   } catch (error) {
@@ -142,7 +142,6 @@ export async function getDashboardData(filters?: { year?: number, month?: number
       exitsByMonth: [],
       recentExits: [],
       exitReasons: [],
-      exitsByType: [],
       allExits: [],
       exitsBySector: [],
     };

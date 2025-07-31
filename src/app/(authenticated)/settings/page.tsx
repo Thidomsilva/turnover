@@ -1,4 +1,5 @@
 
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,22 +20,12 @@ import {
 } from "@/components/ui/dialog"
 import { UserPlus } from "lucide-react";
 import UserForm from "@/components/user-form";
+import { getUsersAction } from "@/lib/actions";
 
 
-const users = [
-  {
-    name: "Admin",
-    email: "admin@gestaodeturnover.com",
-    role: "Administrador",
-  },
-    {
-    name: "Analista RH",
-    email: "analista.rh@example.com",
-    role: "Usuário",
-  },
-]
+export default async function SettingsPage() {
+  const users = await getUsersAction();
 
-export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -81,13 +72,21 @@ export default function SettingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.email}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
+              {users.length > 0 ? (
+                  users.map((user) => (
+                    <TableRow key={user.uid}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.role}</TableCell>
+                    </TableRow>
+                  ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">
+                    Nenhum usuário encontrado.
+                  </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -95,5 +94,3 @@ export default function SettingsPage() {
     </div>
   )
 }
-
-    

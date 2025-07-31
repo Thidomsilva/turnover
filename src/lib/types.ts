@@ -1,9 +1,10 @@
+
 export interface PedidoDemissao {
   id: string;
   tipo: 'pedido_demissao';
-  data_admissao: string;
+  data_admissao: string | null;
   data_desligamento: string;
-  tempo_empresa: number; // in days
+  tempo_empresa: number | null; // in days
   nome_completo: string;
   bairro: string;
   idade: number;
@@ -27,15 +28,22 @@ export interface PedidoDemissao {
 export interface DemissaoEmpresa {
   id: string;
   tipo: 'demissao_empresa';
-  data_admissao: string;
+  data_admissao: string | null;
   data_desligamento: string;
   nome_completo: string;
   lider: string;
   turno: 'Manhã' | 'Tarde' | 'Noite';
   sexo: 'Masculino' | 'Feminino' | 'Outro';
   idade: number;
-  tempo_empresa: number; // in days
+  tempo_empresa: number | null; // in days
   motivo: string;
 }
 
 export type ExitData = PedidoDemissao | DemissaoEmpresa;
+
+export interface User {
+  uid: string;
+  name: string;
+  email: string;
+  role: 'Administrador' | 'Usuário';
+}

@@ -18,16 +18,16 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
-
-const userFormSchema = z.object({
-  name: z.string().min(3, { message: 'O nome é obrigatório.' }),
-  email: z.string().email({ message: 'Por favor, insira um email válido.' }),
-  password: z.string().min(6, { message: 'A senha deve ter no mínimo 6 caracteres.' }),
-});
+import { userFormSchema } from '@/lib/schemas';
+import { addUserAction } from '@/lib/actions';
+import { SheetClose } from './ui/sheet';
+import { DialogClose } from './ui/dialog';
 
 export default function UserForm() {
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
+  const closeRef = React.useRef<HTMLButtonElement>(null);
+
 
   const form = useForm<z.infer<typeof userFormSchema>>({
     resolver: zodResolver(userFormSchema),
@@ -39,12 +39,22 @@ export default function UserForm() {
   });
 
   function onSubmit(data: z.infer<typeof userFormSchema>) {
-    startTransition(() => {
-        console.log(data);
-        toast({
-            title: "Usuário Adicionado (Simulação)",
-            description: "Em um ambiente real, o usuário seria salvo no banco.",
-        });
+    startTransition(async () => {
+        const result = await addUserAction(data);
+        if (result.success) {
+            toast({
+                title: "Sucesso!",
+                description: result.message,
+            });
+            form.reset();
+            closeRef.current?.click();
+        } else {
+             toast({
+                title: "Erro",
+                description: result.message || "Ocorreu um erro ao salvar.",
+                variant: 'destructive',
+            });
+        }
     });
   }
 
@@ -95,9 +105,8 @@ export default function UserForm() {
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Usuário
         </Button>
+        <DialogClose ref={closeRef} className="hidden" />
       </form>
     </Form>
   );
 }
-
-    
