@@ -6,6 +6,7 @@ import { exitFormSchema } from './schemas';
 import { z } from 'zod';
 import { db } from './firebase';
 import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { revalidatePath } from 'next/cache';
 
 export async function getAiInsights() {
   try {
@@ -56,7 +57,7 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing Fields. Failed to Create Exit Record.",
+            message: "Campos inválidos. Falha ao registrar desligamento.",
         };
     }
 
@@ -66,14 +67,18 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
             ...validatedFields.data,
             createdAt: serverTimestamp(),
         });
+
+        revalidatePath('/dashboard');
         
         return {
+            success: true,
             message: "Desligamento registrado com sucesso.",
         };
 
     } catch (error) {
         console.error("Error adding document: ", error);
         return {
+             success: false,
              message: "Ocorreu um erro ao salvar no banco de dados.",
         }
     }

@@ -28,10 +28,12 @@ import {
 import { Textarea } from './ui/textarea';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
+import { SheetClose } from './ui/sheet';
 
 export default function ExitForm() {
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
+  const closeRef = React.useRef<HTMLButtonElement>(null);
 
   const form = useForm<z.infer<typeof exitFormSchema>>({
     resolver: zodResolver(exitFormSchema),
@@ -53,16 +55,17 @@ export default function ExitForm() {
   function onSubmit(data: z.infer<typeof exitFormSchema>) {
     startTransition(async () => {
         const result = await addExitAction(data);
-        if (result.message) {
+        if (result.success) {
             toast({
                 title: "Sucesso!",
                 description: result.message,
             });
             form.reset();
+            closeRef.current?.click();
         } else {
              toast({
                 title: "Erro",
-                description: result.message || "Ocorreu um erro.",
+                description: result.message || "Ocorreu um erro ao salvar.",
                 variant: 'destructive',
             });
         }
@@ -249,6 +252,7 @@ export default function ExitForm() {
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Desligamento
         </Button>
+        <SheetClose ref={closeRef} className="hidden" />
       </form>
     </Form>
   );
