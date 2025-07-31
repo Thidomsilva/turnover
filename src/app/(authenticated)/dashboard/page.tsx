@@ -14,7 +14,6 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { OverviewChart } from '@/components/overview-chart';
 import { RecentExits } from '@/components/recent-exits';
 import { StatCard } from '@/components/stat-card';
-import { ExitTypeChart } from '@/components/exit-type-chart';
 import { getDashboardData } from '@/lib/data';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -264,10 +263,12 @@ export default function DashboardPage() {
     avgTenure,
     exitsByMonth,
     recentExits,
-    exitsByType,
     exitsBySector,
     exitReasons,
   } = data;
+
+  const pedidosPercentage = totalExits > 0 ? (totalPedidos / totalExits) * 100 : 0;
+  const empresaPercentage = totalExits > 0 ? (totalEmpresa / totalExits) * 100 : 0;
 
   return (
     <>
@@ -374,8 +375,8 @@ export default function DashboardPage() {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Total de Desligamentos" value={totalExits.toString()} description="Total de saídas no período" icon="Users" />
-            <StatCard title="Pedidos de Demissão" value={totalPedidos.toString()} description="Iniciados pelo colaborador" icon="UserMinus" />
-            <StatCard title="Demissões pela Empresa" value={totalEmpresa.toString()} description="Iniciados pela empresa" icon="UserX" />
+            <StatCard title="Pedidos de Demissão" value={`${totalPedidos} (${pedidosPercentage.toFixed(0)}%)`} description="Iniciados pelo colaborador" icon="UserMinus" />
+            <StatCard title="Demissões pela Empresa" value={`${totalEmpresa} (${empresaPercentage.toFixed(0)}%)`} description="Iniciados pela empresa" icon="UserX" />
             <StatCard title="Tempo Médio de Casa" value={`${avgTenure} meses`} description="Duração média no cargo" icon="Clock" />
           </div>
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -421,19 +422,6 @@ export default function DashboardPage() {
                 <ExitReasonsChart data={exitReasons} />
               </CardContent>
             </Card>
-          </div>
-          <div className="grid gap-4">
-            <Card>
-                <CardHeader>
-                  <CardTitle>Tipos de Desligamento</CardTitle>
-                  <CardDescription>
-                    Comparativo entre pedidos e demissões.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ExitTypeChart data={exitsByType} />
-                </CardContent>
-              </Card>
           </div>
         </TabsContent>
         <TabsContent value="reports" className="space-y-4">
