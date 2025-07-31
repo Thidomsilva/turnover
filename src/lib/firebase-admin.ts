@@ -4,17 +4,27 @@ import * as admin from 'firebase-admin';
 let adminApp: admin.app.App;
 
 function initializeFirebaseAdmin() {
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+  if (!serviceAccountKey) {
     throw new Error('A variável de ambiente FIREBASE_SERVICE_ACCOUNT_KEY não está definida.');
   }
 
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-
-  if (!admin.apps.length) {
+  // Evita reinicialização
+  if (admin.apps.length > 0) {
+    adminApp = admin.app();
+    return;
+  }
+  
+  try {
+    const serviceAccount = JSON.parse(serviceAccountKey);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
+  } catch(e: any) {
+    throw new Error(`A chave de serviço do Firebase é inválida: ${e.message}`);
   }
+
   adminApp = admin.app();
 }
 
@@ -23,8 +33,7 @@ export const getAdminApp = () => {
     try {
       initializeFirebaseAdmin();
     } catch (error: any) {
-        // We throw a more user-friendly error to be caught in the action.
-        throw new Error(`A inicialização do Firebase Admin falhou. A chave de serviço pode estar faltando ou ser inválida. Detalhes: ${error.message}`);
+      throw new Error(`A inicialização do Firebase Admin falhou. ${error.message}`);
     }
   }
   return adminApp;
