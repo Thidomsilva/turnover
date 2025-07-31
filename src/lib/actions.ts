@@ -5,7 +5,7 @@ import type { PedidoDemissao } from './types';
 import { exitFormSchema } from './schemas';
 import { z } from 'zod';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function getAiInsights() {
@@ -96,10 +96,7 @@ export async function importExitsAction(data: any[]) {
   let count = 0;
 
   for (const item of data) {
-    const docRef = addDoc(exitsCollection, {
-      ...item,
-      createdAt: serverTimestamp(),
-    }).withConverter(null); // Create a new doc with a random ID
+    const docRef = doc(exitsCollection); // Create a new doc with a random ID
      batch.set(docRef, {
       ...item,
       createdAt: serverTimestamp(),
