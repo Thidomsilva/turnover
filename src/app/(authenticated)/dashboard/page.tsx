@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { OverviewChart } from '@/components/overview-chart';
 import { RecentExits } from '@/components/recent-exits';
@@ -20,14 +20,18 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Button } from '@/components/ui/button';
 import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2, BarChartBig } from 'lucide-react';
 import ExitForm from '@/components/exit-form';
+import * as XLSX from 'xlsx';
+import { useToast } from '@/hooks/use-toast';
+import { importExitsAction } from '@/lib/actions';
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,10 +48,59 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const workbook = XLSX.read(event.target?.result, { type: 'binary' });
+      
+      const pedidosSheet = workbook.Sheets['Pedidos'];
+      const demitidosSheet = workbook.Sheets['Demitidos'];
+
+      if (!pedidosSheet && !demitidosSheet) {
+        toast({
+            title: "Erro",
+            description: "A planilha deve conter as abas 'Pedidos' e/ou 'Demitidos'.",
+            variant: 'destructive',
+        });
+        return;
+      }
+      
+      const pedidosData = pedidosSheet ? XLSX.utils.sheet_to_json(pedidosSheet) : [];
+      const demitidosData = demitidosSheet ? XLSX.utils.sheet_to_json(demitidosSheet) : [];
+
+      const allData = [
+        ...pedidosData.map((row: any) => ({ ...row, tipo: 'pedido_demissao' })),
+        ...demitidosData.map((row: any) => ({ ...row, tipo: 'demissao_empresa' })),
+      ];
+
+      startTransition(async () => {
+        const result = await importExitsAction(allData);
+        if (result.success) {
+            toast({
+                title: "Sucesso!",
+                description: result.message,
+            });
+            window.location.reload();
+        } else {
+             toast({
+                title: "Erro",
+                description: result.message || "Ocorreu um erro ao importar.",
+                variant: 'destructive',
+            });
+        }
+      });
+    };
+    reader.readAsBinaryString(file);
+    // Reset file input to allow re-uploading the same file
+    e.target.value = '';
+  }
 
   if (loading) {
     return (
@@ -101,11 +154,11 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex items-center space-x-2">
-           <Button variant="outline" size="sm" onClick={handleImportClick}>
-            <Upload className="mr-2 h-4 w-4" />
-            Importar Histórico
+           <Button variant="outline" size="sm" onClick={handleImportClick} disabled={isPending}>
+            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            {isPending ? 'Importando...' : 'Importar Histórico'}
           </Button>
-          <input type="file" ref={fileInputRef} className="hidden" />
+          <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileChange} />
           <Button variant="outline" size="sm">
             <FileDown className="mr-2 h-4 w-4" />
             Exportar

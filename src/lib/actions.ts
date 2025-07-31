@@ -5,7 +5,7 @@ import type { PedidoDemissao } from './types';
 import { exitFormSchema } from './schemas';
 import { z } from 'zod';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function getAiInsights() {
@@ -83,4 +83,39 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
              message: error.message || "Ocorreu um erro ao salvar no banco de dados.",
         }
     }
+}
+
+export async function importExitsAction(data: any[]) {
+  if (!data || data.length === 0) {
+    return { success: false, message: 'Nenhum dado para importar.' };
+  }
+
+  const batch = writeBatch(db);
+  const exitsCollection = collection(db, 'exits');
+
+  let count = 0;
+
+  for (const item of data) {
+    const docRef = addDoc(exitsCollection, {
+      ...item,
+      createdAt: serverTimestamp(),
+    }).withConverter(null); // Create a new doc with a random ID
+     batch.set(docRef, {
+      ...item,
+      createdAt: serverTimestamp(),
+    });
+    count++;
+  }
+
+  try {
+    await batch.commit();
+    revalidatePath('/dashboard');
+    return { success: true, message: `${count} registros importados com sucesso.` };
+  } catch (error: any) {
+    console.error('Error importing documents: ', error);
+    return {
+      success: false,
+      message: error.message || 'Ocorreu um erro ao importar os dados.',
+    };
+  }
 }
