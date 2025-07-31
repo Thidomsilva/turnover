@@ -262,70 +262,66 @@ export async function clearAllExitsAction() {
 }
 
 export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) {
-    return {
-        success: false,
-        message: "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando."
-    };
-    
-    // const validatedFields = serverUserFormSchema.safeParse(data);
-
-    // if (!validatedFields.success) {
-    //     return {
-    //         success: false,
-    //         message: "Campos inválidos. Falha ao adicionar usuário.",
-    //     };
-    // }
-
-    // const { name, email, password } = validatedFields.data;
-
-    // try {
-    //     const adminApp = getAdminApp();
-    //     const auth = getAuth(adminApp);
+    try {
+        // This will throw an error if the admin app isn't initialized correctly.
+        const adminApp = getAdminApp(); 
+        const auth = getAuth(adminApp);
         
-    //     const users = await getUsersAction();
-    //     let role: 'Administrador' | 'Usuário' = 'Usuário';
-    //     if (users.length === 0 || email === 'thiago@sagacy.com.br') {
-    //         role = 'Administrador';
-    //     }
+        const validatedFields = serverUserFormSchema.safeParse(data);
 
-    //     const userRecord = await auth.createUser({
-    //         email,
-    //         password,
-    //         displayName: name,
-    //     });
+        if (!validatedFields.success) {
+            return {
+                success: false,
+                message: "Campos inválidos. Falha ao adicionar usuário.",
+            };
+        }
 
-    //     const userDocRef = doc(db, "users", userRecord.uid);
-    //     await setDoc(userDocRef, {
-    //         uid: userRecord.uid,
-    //         name,
-    //         email,
-    //         role,
-    //     });
+        const { name, email, password } = validatedFields.data;
 
-    //     revalidatePath('/settings');
+        let role: 'Administrador' | 'Usuário' = 'Usuário';
+        const users = await getUsersAction();
+        if (users.length === 0 || email === 'thiago@sagacy.com.br') {
+            role = 'Administrador';
+        }
 
-    //     return {
-    //         success: true,
-    //         message: "Usuário adicionado com sucesso.",
-    //     };
+        const userRecord = await auth.createUser({
+            email,
+            password,
+            displayName: name,
+        });
 
-    // } catch (error: any) {
-    //     console.error("Error adding user: ", error);
+        const userDocRef = doc(db, "users", userRecord.uid);
+        await setDoc(userDocRef, {
+            uid: userRecord.uid,
+            name,
+            email,
+            role,
+        });
+
+        revalidatePath('/settings');
+
+        return {
+            success: true,
+            message: "Usuário adicionado com sucesso.",
+        };
+
+    } catch (error: any) {
+        console.error("Error adding user: ", error);
         
-    //     let errorMessage = "Ocorreu um erro desconhecido.";
-    //      if (error.code === 'auth/email-already-exists') {
-    //         errorMessage = "Este e-mail já está em uso por outro usuário.";
-    //     } else if (error.message.includes('Firebase admin initialization failed')) {
-    //         errorMessage = "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando.";
-    //     } else if (error.message) {
-    //         errorMessage = error.message;
-    //     }
-
-    //     return {
-    //          success: false,
-    //          message: errorMessage,
-    //     }
-    // }
+        let errorMessage = "Ocorreu um erro desconhecido.";
+        if (error.code === 'auth/email-already-exists') {
+            errorMessage = "Este e-mail já está em uso por outro usuário.";
+        } else if (error.message.includes('Firebase admin initialization failed')) {
+            errorMessage = "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando.";
+        } else {
+             errorMessage = error.message || "Ocorreu um erro desconhecido ao adicionar o usuário."
+        }
+        
+        return {
+             success: false,
+             message: errorMessage,
+        }
+    }
 }
 
 export async function getUsersAction(): Promise<User[]> {
