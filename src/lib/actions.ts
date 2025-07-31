@@ -107,35 +107,43 @@ function excelDateToYYYYMMDD(serial: any): string {
 }
 
 function parseTenureToDays(tenure: any): number | null {
-    if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
+    if (tenure === null || tenure === undefined) {
         return null;
     }
 
     const tenureStr = String(tenure).toUpperCase().trim();
-    let years = 0;
-    let months = 0;
-    let days = 0;
 
-    const yearMatch = tenureStr.match(/(\d+)\s*ANOS?/);
-    if (yearMatch) {
-        years = parseInt(yearMatch[1], 10);
-    }
-    
-    const monthMatch = tenureStr.match(/(\d+)\s*M[EÊ]S(ES)?/);
-    if (monthMatch) {
-        months = parseInt(monthMatch[1], 10);
-    }
-    
-    const dayMatch = tenureStr.match(/(\d+)\s*DIAS?/);
-    if (dayMatch) {
-        days = parseInt(dayMatch[1], 10);
+    if (tenureStr === '') {
+        return null;
     }
 
-    const totalDays = (years * 365) + (months * 30) + days;
+    let anos = 0;
+    let meses = 0;
+    let dias = 0;
 
-    return totalDays > 0 ? totalDays : null;
+    const anoMatch = tenureStr.match(/(\d+)\s*ANOS?/);
+    if (anoMatch) {
+        anos = parseInt(anoMatch[1], 10);
+    }
+
+    const mesMatch = tenureStr.match(/(\d+)\s*M[ÊE]S(ES)?/);
+    if (mesMatch) {
+        meses = parseInt(mesMatch[1], 10);
+    }
+
+    const diaMatch = tenureStr.match(/(\d+)\s*DIAS?/);
+    if (diaMatch) {
+        dias = parseInt(diaMatch[1], 10);
+    }
+
+    const totalDias = (anos * 365) + (meses * 30) + dias;
+
+    if (totalDias === 0) {
+        return null;
+    }
+
+    return totalDias;
 }
-
 
 export async function importExitsAction(data: any[]) {
     if (!data || data.length === 0) {
