@@ -93,7 +93,8 @@ function excelDateToYYYYMMDD(serial: any): string {
     }
     if (typeof serial !== 'number' || isNaN(serial)) {
       // Fallback for invalid or non-numeric formats
-      return new Date().toISOString().split('T')[0];
+      const today = new Date();
+      return today.toISOString().split('T')[0];
     }
     // Formula to convert Excel serial number to JS date (subtract 25569 for origin date)
     const utc_days = Math.floor(serial - 25569);
@@ -105,6 +106,35 @@ function excelDateToYYYYMMDD(serial: any): string {
     const day = String(date_info.getUTCDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+}
+
+// Helper to parse tenure string (e.g., "1 ANO E 7 MESES") to years
+function parseTenureToYears(tenureStr: any): number {
+    if (!tenureStr || typeof tenureStr !== 'string') {
+        return 0;
+    }
+
+    const text = tenureStr.toLowerCase().replace(/ e /g, ' ');
+    let years = 0;
+    let months = 0;
+    let days = 0;
+
+    const yearMatch = text.match(/(\d+)\s*ano/);
+    if (yearMatch) {
+        years = parseInt(yearMatch[1], 10);
+    }
+
+    const monthMatch = text.match(/(\d+)\s*m[eê]s/);
+    if (monthMatch) {
+        months = parseInt(monthMatch[1], 10);
+    }
+    
+    const dayMatch = text.match(/(\d+)\s*dia/);
+    if (dayMatch) {
+        days = parseInt(dayMatch[1], 10);
+    }
+
+    return years + (months / 12) + (days / 365);
 }
 
 
@@ -119,11 +149,11 @@ export async function importExitsAction(data: any[]) {
 
     for (const rawItem of data) {
         try {
-            // Create a new object with lowercase keys without spaces
+            // Create a new object with lowercase keys without spaces or special chars
             const item: { [key: string]: any } = {};
             for (const key in rawItem) {
                 if (Object.prototype.hasOwnProperty.call(rawItem, key)) {
-                    const newKey = key.toLowerCase().trim().replace(/\s+/g, '');
+                    const newKey = key.toLowerCase().trim().replace(/\s+/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     item[newKey] = rawItem[key];
                 }
             }
@@ -141,7 +171,7 @@ export async function importExitsAction(data: any[]) {
             item.lider = String(item.lider || '').trim();
             item.sexo = String(item.sexo || '').trim();
             item.idade = Number(item.idade) || 0;
-            item.tempo_empresa = String(item.tempoempresa || '0');
+            item.tempo_empresa = parseTenureToYears(item.tempoempresa);
 
             if (item.tipo === 'pedido_demissao') {
                 // Process fields specific to "pedido_demissao"

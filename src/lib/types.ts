@@ -2,7 +2,7 @@ export interface PedidoDemissao {
   id: string;
   tipo: 'pedido_demissao';
   data_desligamento: string;
-  tempo_empresa: string;
+  tempo_empresa: number; // Changed to number
   nome_completo: string;
   bairro: string;
   idade: number;
@@ -32,7 +32,7 @@ export interface DemissaoEmpresa {
   turno: 'Manhã' | 'Tarde' | 'Noite';
   sexo: 'Masculino' | 'Feminino' | 'Outro';
   idade: number;
-  tempo_empresa: string;
+  tempo_empresa: number; // Changed to number
   motivo_desligamento: string;
 }
 
