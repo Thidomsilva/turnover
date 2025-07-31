@@ -86,7 +86,7 @@ export default function DashboardPage() {
       const sheetNames = workbook.SheetNames;
       
       const normalizeString = (str: string) => {
-        return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
       }
 
       const pedidosSheetName = sheetNames.find(name => normalizeString(name) === 'pedido de demissao');
