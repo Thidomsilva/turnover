@@ -19,13 +19,19 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { userFormSchema } from '@/lib/schemas';
-import { addUserAction } from '@/lib/actions';
 import { DialogClose } from './ui/dialog';
+
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
+
 
 export default function UserForm() {
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
   const closeRef = React.useRef<HTMLButtonElement>(null);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof userFormSchema>>({
     resolver: zodResolver(userFormSchema),
@@ -36,23 +42,48 @@ export default function UserForm() {
     },
   });
 
-  function onSubmit(data: z.infer<typeof userFormSchema>) {
+  async function onSubmit(data: z.infer<typeof userFormSchema>) {
     startTransition(async () => {
-        const result = await addUserAction(data);
-        if (result.success) {
-            toast({
-                title: "Sucesso!",
-                description: result.message,
-            });
-            form.reset();
-            closeRef.current?.click();
-        } else {
-             toast({
-                title: "Erro",
-                description: result.message || "Ocorreu um erro ao salvar.",
-                variant: 'destructive',
-            });
+      try {
+        const auth = getAuth();
+        const { name, email, password } = data;
+        
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        await updateProfile(user, { displayName: name });
+
+        const role = email === 'thiago@sagacy.com.br' ? 'Administrador' : 'Usuário';
+
+        await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            name,
+            email,
+            role,
+        });
+
+        toast({
+            title: "Sucesso!",
+            description: "Usuário criado com sucesso.",
+        });
+        form.reset();
+        closeRef.current?.click();
+        router.refresh(); 
+
+      } catch (error: any) {
+        console.error("Error creating user:", error);
+        let message = "Ocorreu um erro ao salvar.";
+        if (error.code === 'auth/email-already-in-use') {
+            message = 'Este email já está em uso por outra conta.';
+        } else if (error.code === 'auth/weak-password') {
+            message = 'A senha é muito fraca. Tente uma mais forte.';
         }
+        toast({
+            title: "Erro",
+            description: message,
+            variant: 'destructive',
+        });
+      }
     });
   }
 

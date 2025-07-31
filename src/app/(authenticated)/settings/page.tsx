@@ -1,4 +1,6 @@
 
+'use client'
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,10 +15,24 @@ import { getUsersAction } from "@/lib/actions";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import UserForm from "@/components/user-form";
 import { PlusCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { User } from "@/lib/types";
 
 
-export default async function SettingsPage() {
-  const users = await getUsersAction();
+export default function SettingsPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      setLoading(true);
+      const userList = await getUsersAction();
+      setUsers(userList);
+      setLoading(false);
+    }
+    fetchUsers();
+  }, [])
+
 
   return (
     <div className="space-y-6">
@@ -64,7 +80,13 @@ export default async function SettingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.length > 0 ? (
+              {loading ? (
+                 <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">
+                    Carregando usuários...
+                  </TableCell>
+                </TableRow>
+              ) : users.length > 0 ? (
                   users.map((user) => (
                     <TableRow key={user.uid}>
                       <TableCell className="font-medium">{user.name}</TableCell>

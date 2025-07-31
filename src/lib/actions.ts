@@ -3,14 +3,12 @@
 
 import { generateExitInsights, type ExitDataInput } from '@/ai/flows/generate-exit-insights';
 import type { PedidoDemissao, User } from './types';
-import { exitFormSchema, userFormSchema } from './schemas';
+import { exitFormSchema } from './schemas';
 import { z } from 'zod';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
-import { getAdminApp } from './firebase-admin';
-import type { auth } from 'firebase-admin';
 
 export async function getAiInsights() {
   try {
@@ -231,60 +229,6 @@ export async function importExitsAction(data: any[]) {
         };
     }
 }
-
-export async function addUserAction(data: z.infer<typeof userFormSchema>) {
-    const validatedFields = userFormSchema.safeParse(data);
-    if (!validatedFields.success) {
-        return {
-            success: false,
-            message: "Dados de usuário inválidos.",
-        };
-    }
-
-    try {
-        const adminApp = getAdminApp();
-        const auth = adminApp.auth();
-
-        const { name, email, password } = validatedFields.data;
-        const userRecord = await auth.createUser({
-            email,
-            password,
-            displayName: name,
-        });
-
-        const role = email === 'thiago@sagacy.com.br' ? 'Administrador' : 'Usuário';
-
-        await setDoc(doc(db, 'users', userRecord.uid), {
-            uid: userRecord.uid,
-            name,
-            email,
-            role,
-        });
-        
-        revalidatePath('/settings');
-        return { success: true, message: 'Usuário criado com sucesso!' };
-
-    } catch (error: any) {
-        console.error("Error creating user:", error);
-         if (error.message.includes('A inicialização do Firebase Admin falhou')) {
-            return {
-                success: false,
-                message: 'Erro: A funcionalidade de administrador não está configurada neste ambiente.',
-            };
-        }
-        if (error.code === 'auth/email-already-exists') {
-            return {
-                success: false,
-                message: 'Este email já está em uso.',
-            };
-        }
-        return {
-            success: false,
-            message: 'Ocorreu um erro desconhecido ao criar o usuário.',
-        };
-    }
-}
-
 
 export async function getUsersAction(): Promise<User[]> {
   try {
