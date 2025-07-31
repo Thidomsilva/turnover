@@ -23,6 +23,18 @@ import ExitForm from '@/components/exit-form';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { importExitsAction } from '@/lib/actions';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { type ExitData } from '@/lib/types';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
 
@@ -32,6 +44,10 @@ export default function DashboardPage() {
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [monthlyExits, setMonthlyExits] = useState<ExitData[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,6 +122,25 @@ export default function DashboardPage() {
     // Reset file input to allow re-uploading the same file
     if(e.target) e.target.value = '';
   }
+
+  const handleBarClick = (month: string) => {
+    if (!data?.allExits) return;
+    
+    const parsedMonth = parse(month, 'MMM', new Date(), { locale: ptBR });
+    
+    const exitsInMonth = data.allExits.filter(exit => {
+      const exitMonth = new Date(exit.data_desligamento).getMonth();
+      return exitMonth === parsedMonth.getMonth();
+    });
+
+    const fullMonthName = format(parsedMonth, 'MMMM', { locale: ptBR });
+    const capitalizedMonth = fullMonthName.charAt(0).toUpperCase() + fullMonthName.slice(1);
+
+
+    setSelectedMonth(capitalizedMonth);
+    setMonthlyExits(exitsInMonth);
+    setIsModalOpen(true);
+  };
 
   if (loading) {
     return (
@@ -210,9 +245,10 @@ export default function DashboardPage() {
             <Card className="col-span-4">
               <CardHeader>
                 <CardTitle>Visão Geral de Rotatividade</CardTitle>
+                <CardDescription>Clique em uma barra para ver detalhes do mês.</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <OverviewChart data={exitsByMonth} />
+                <OverviewChart data={exitsByMonth} onBarClick={handleBarClick} />
               </CardContent>
             </Card>
             <div className="col-span-4 lg:col-span-3 space-y-4 flex flex-col">
@@ -304,6 +340,37 @@ export default function DashboardPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Desligamentos em {selectedMonth}</DialogTitle>
+            <DialogDescription>
+              Lista de colaboradores que saíram neste mês.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            {monthlyExits.length > 0 ? (
+              monthlyExits.map((exit) => (
+                <div key={exit.id} className="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarImage src={`https://placehold.co/40x40.png?text=${exit.nome_completo.charAt(0)}`} />
+                    <AvatarFallback>{exit.nome_completo.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium leading-none">{exit.nome_completo}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {exit.tipo === 'pedido_demissao' ? exit.cargo : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">Nenhum desligamento neste mês.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
