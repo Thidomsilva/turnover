@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import Image from "next/image"
+import { Layers } from "lucide-react"
 
 export default function LoginPage() {
   return (
@@ -12,7 +12,10 @@ export default function LoginPage() {
         <Card>
           <CardHeader className="space-y-1 text-center">
             <div className="flex flex-col justify-center items-center gap-4 mb-2">
-                <Image src="https://firebasestudio.ai/api/v1/files/db7383a8-4228-40bb-974a-a1b72e597143/view" alt="Logomarca" width={200} height={100} />
+                <div className="p-3 bg-primary rounded-full text-primary-foreground">
+                    <Layers className="h-10 w-10" />
+                </div>
+                <CardTitle>Gestão de Turnover</CardTitle>
             </div>
             <CardDescription>
               Entre com seu email e senha para acessar o painel
