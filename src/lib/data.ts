@@ -34,27 +34,23 @@ export async function getDashboardData() {
     const totalPedidos = allExits.filter(d => d.tipo === 'pedido_demissao').length;
     const totalEmpresa = allExits.filter(d => d.tipo === 'demissao_empresa').length;
     
-    // Filter for valid tenure data (in days) and calculate the average.
     const tenureDataInDays = allExits
         .map(p => p.tempo_empresa)
         .filter((days): days is number => typeof days === 'number' && isFinite(days) && days > 0);
 
     const totalTenureInDays = tenureDataInDays.reduce((acc, curr) => acc + curr, 0);
     
-    // Calculate average tenure in months
     const avgTenureInDays = tenureDataInDays.length > 0 
         ? totalTenureInDays / tenureDataInDays.length
         : 0;
     
-    const avgTenure = Math.round(avgTenureInDays / 30.44); // Convert average days to months
+    const avgTenure = Math.round(avgTenureInDays / 30);
 
-    // Initialize the last 6 months for the overview chart
     const exitsByMonth = Array.from({ length: 6 }).map((_, i) => {
       const d = subMonths(new Date(), i);
       return { name: format(d, 'MMM', { locale: ptBR }), total: 0 };
     }).reverse();
 
-    // Populate exits count for each month
     allExits.forEach(exit => {
       if (!exit.data_desligamento || typeof exit.data_desligamento !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(exit.data_desligamento)) {
           return;
@@ -109,7 +105,6 @@ export async function getDashboardData() {
     };
   } catch (error) {
     console.error("Failed to fetch and process dashboard data:", error);
-    // Return a safe, empty state if any unexpected error occurs
     return {
       totalExits: 0,
       totalPedidos: 0,

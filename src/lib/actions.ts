@@ -110,34 +110,39 @@ function parseTenureToDays(tenure: any): number | null {
     if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
         return null;
     }
-
-    let tenureStr = String(tenure).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    // Case 1: If it's a simple number, assume it's years and convert to days.
-    const numericValue = parseFloat(tenureStr.replace(',', '.'));
-    if (!isNaN(numericValue) && isFinite(numericValue) && !/[a-z]/.test(tenureStr)) {
-        return numericValue * 365.25;
+    
+    // If it's already a valid number, assume it's years and convert to days.
+    const numericValue = parseFloat(String(tenure).replace(',', '.'));
+    if (!isNaN(numericValue) && isFinite(numericValue) && !/[a-z]/i.test(String(tenure))) {
+        return Math.round(numericValue * 365);
     }
     
-    // Case 2: Handle complex strings like "1 ano e 7 meses"
-    tenureStr = tenureStr
-        .replace(/anos?/g, 'ano')
-        .replace(/meses|mes/g, 'mes')
-        .replace(/dias?/g, 'dia');
-
-    let totalDays = 0;
-
-    const yearMatch = tenureStr.match(/([\d.,]+)\s*ano/);
-    const monthMatch = tenureStr.match(/([\d.,]+)\s*mes/);
-    const dayMatch = tenureStr.match(/([\d.,]+)\s*dia/);
-
-    if (yearMatch) totalDays += parseFloat(yearMatch[1].replace(',', '.')) * 365.25;
-    if (monthMatch) totalDays += parseFloat(monthMatch[1].replace(',', '.')) * 30.44; 
-    if (dayMatch) totalDays += parseFloat(dayMatch[1].replace(',', '.'));
+    const tenureStr = String(tenure).toUpperCase().trim();
     
-    if (totalDays === 0) return null;
+    let years = 0;
+    let months = 0;
+    let days = 0;
 
-    return totalDays;
+    const yearMatch = tenureStr.match(/(\d+)\s*ANOS?/);
+    if (yearMatch) {
+        years = parseInt(yearMatch[1], 10);
+    }
+    
+    const monthMatch = tenureStr.match(/(\d+)\s*M[EÊ]S(ES)?/);
+    if (monthMatch) {
+        months = parseInt(monthMatch[1], 10);
+    }
+    
+    const dayMatch = tenureStr.match(/(\d+)\s*DIAS?/);
+    if (dayMatch) {
+        days = parseInt(dayMatch[1], 10);
+    }
+
+    if (years === 0 && months === 0 && days === 0) {
+        return null;
+    }
+
+    return (years * 365) + (months * 30) + days;
 }
 
 
@@ -173,7 +178,7 @@ export async function importExitsAction(data: any[]) {
             item.sexo = String(item['sexo'] || '').trim();
             item.idade = Number(item['idade']) || null;
             
-            item.tempo_empresa = parseTenureToDays(item['tempodeempresa']);
+            item.tempo_empresa = parseTenureToDays(item['tempoempresa']);
 
             if (item.tipo === 'pedido_demissao') {
                 item.bairro = String(item['bairro'] || '').trim();
