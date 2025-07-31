@@ -60,13 +60,13 @@ export default function DashboardPage() {
     reader.onload = (event) => {
       const workbook = XLSX.read(event.target?.result, { type: 'binary' });
       
-      const pedidosSheet = workbook.Sheets['Pedidos'];
-      const demitidosSheet = workbook.Sheets['Demitidos'];
+      const pedidosSheet = workbook.Sheets['pedido demissao'];
+      const demitidosSheet = workbook.Sheets['demissao empresa'];
 
       if (!pedidosSheet && !demitidosSheet) {
         toast({
             title: "Erro",
-            description: "A planilha deve conter as abas 'Pedidos' e/ou 'Demitidos'.",
+            description: "A planilha deve conter as abas 'pedido demissao' e/ou 'demissao empresa'.",
             variant: 'destructive',
         });
         return;
