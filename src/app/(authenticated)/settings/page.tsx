@@ -42,7 +42,7 @@ export default async function SettingsPage() {
                 Adicione, edite ou remova usuários da plataforma.
               </CardDescription>
             </div>
-             <Dialog>
+             {/* <Dialog>
                 <DialogTrigger asChild>
                     <Button>
                         <UserPlus className="mr-2 h-4 w-4" />
@@ -58,7 +58,7 @@ export default async function SettingsPage() {
                     </DialogHeader>
                     <UserForm />
                 </DialogContent>
-            </Dialog>
+            </Dialog> */}
           </div>
         </CardHeader>
         <CardContent>

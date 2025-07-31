@@ -262,68 +262,70 @@ export async function clearAllExitsAction() {
 }
 
 export async function addUserAction(data: z.infer<typeof serverUserFormSchema>) {
-    const validatedFields = serverUserFormSchema.safeParse(data);
+    return {
+        success: false,
+        message: "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando."
+    };
+    
+    // const validatedFields = serverUserFormSchema.safeParse(data);
 
-    if (!validatedFields.success) {
-        return {
-            success: false,
-            message: "Campos inválidos. Falha ao adicionar usuário.",
-        };
-    }
+    // if (!validatedFields.success) {
+    //     return {
+    //         success: false,
+    //         message: "Campos inválidos. Falha ao adicionar usuário.",
+    //     };
+    // }
 
-    const { name, email, password } = validatedFields.data;
+    // const { name, email, password } = validatedFields.data;
 
-    try {
-        const adminApp = getAdminApp();
-        const auth = getAuth(adminApp);
+    // try {
+    //     const adminApp = getAdminApp();
+    //     const auth = getAuth(adminApp);
         
-        // Determine role based on business logic
-        const users = await getUsersAction();
-        let role: 'Administrador' | 'Usuário' = 'Usuário';
-        if (users.length === 0 || email === 'thiago@sagacy.com.br') {
-            role = 'Administrador';
-        }
+    //     const users = await getUsersAction();
+    //     let role: 'Administrador' | 'Usuário' = 'Usuário';
+    //     if (users.length === 0 || email === 'thiago@sagacy.com.br') {
+    //         role = 'Administrador';
+    //     }
 
-        // Create user in Firebase Authentication
-        const userRecord = await auth.createUser({
-            email,
-            password,
-            displayName: name,
-        });
+    //     const userRecord = await auth.createUser({
+    //         email,
+    //         password,
+    //         displayName: name,
+    //     });
 
-        // Save user info in Firestore
-        const userDocRef = doc(db, "users", userRecord.uid);
-        await setDoc(userDocRef, {
-            uid: userRecord.uid,
-            name,
-            email,
-            role,
-        });
+    //     const userDocRef = doc(db, "users", userRecord.uid);
+    //     await setDoc(userDocRef, {
+    //         uid: userRecord.uid,
+    //         name,
+    //         email,
+    //         role,
+    //     });
 
-        revalidatePath('/settings');
+    //     revalidatePath('/settings');
 
-        return {
-            success: true,
-            message: "Usuário adicionado com sucesso.",
-        };
+    //     return {
+    //         success: true,
+    //         message: "Usuário adicionado com sucesso.",
+    //     };
 
-    } catch (error: any) {
-        console.error("Error adding user: ", error);
+    // } catch (error: any) {
+    //     console.error("Error adding user: ", error);
         
-        let errorMessage = "Ocorreu um erro desconhecido.";
-         if (error.code === 'auth/email-already-exists') {
-            errorMessage = "Este e-mail já está em uso por outro usuário.";
-        } else if (error.message.includes('Firebase admin initialization failed')) {
-            errorMessage = "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando.";
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
+    //     let errorMessage = "Ocorreu um erro desconhecido.";
+    //      if (error.code === 'auth/email-already-exists') {
+    //         errorMessage = "Este e-mail já está em uso por outro usuário.";
+    //     } else if (error.message.includes('Firebase admin initialization failed')) {
+    //         errorMessage = "A funcionalidade de administrador não está configurada neste ambiente. A chave de serviço pode estar faltando.";
+    //     } else if (error.message) {
+    //         errorMessage = error.message;
+    //     }
 
-        return {
-             success: false,
-             message: errorMessage,
-        }
-    }
+    //     return {
+    //          success: false,
+    //          message: errorMessage,
+    //     }
+    // }
 }
 
 export async function getUsersAction(): Promise<User[]> {
