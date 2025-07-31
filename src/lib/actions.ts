@@ -107,31 +107,33 @@ function excelDateToYYYYMMDD(serial: any): string {
 }
 
 function parseTenureToDays(tenure: any): number | null {
-    if (tenure === null || tenure === undefined) return null;
+    if (tenure === null || tenure === undefined || String(tenure).trim() === '') {
+        return null;
+    }
 
-    let tenureStr = String(tenure).trim().toLowerCase();
-    
-    // If it's a simple number, assume it's already in years and convert to days
+    let tenureStr = String(tenure).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // Case 1: If it's a simple number, assume it's years and convert to days.
     const numericValue = parseFloat(tenureStr.replace(',', '.'));
     if (!isNaN(numericValue) && isFinite(numericValue) && !/[a-z]/.test(tenureStr)) {
         return numericValue * 365.25;
     }
-
-    // Normalize variations of "ano", "mes", "dia"
+    
+    // Case 2: Handle complex strings like "1 ano e 7 meses"
     tenureStr = tenureStr
         .replace(/anos?/g, 'ano')
-        .replace(/meses|mês/g, 'mes')
+        .replace(/meses|mes/g, 'mes')
         .replace(/dias?/g, 'dia');
 
     let totalDays = 0;
 
-    const yearMatch = tenureStr.match(/(\d+)\s*ano/);
-    const monthMatch = tenureStr.match(/(\d+)\s*mes/);
-    const dayMatch = tenureStr.match(/(\d+)\s*dia/);
+    const yearMatch = tenureStr.match(/([\d.,]+)\s*ano/);
+    const monthMatch = tenureStr.match(/([\d.,]+)\s*mes/);
+    const dayMatch = tenureStr.match(/([\d.,]+)\s*dia/);
 
-    if (yearMatch) totalDays += parseInt(yearMatch[1], 10) * 365.25; // Average days in a year
-    if (monthMatch) totalDays += parseInt(monthMatch[1], 10) * 30.44; // Average days in a month
-    if (dayMatch) totalDays += parseInt(dayMatch[1], 10);
+    if (yearMatch) totalDays += parseFloat(yearMatch[1].replace(',', '.')) * 365.25;
+    if (monthMatch) totalDays += parseFloat(monthMatch[1].replace(',', '.')) * 30.44; 
+    if (dayMatch) totalDays += parseFloat(dayMatch[1].replace(',', '.'));
     
     if (totalDays === 0) return null;
 
