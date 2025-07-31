@@ -84,8 +84,13 @@ export default function DashboardPage() {
       const workbook = XLSX.read(event.target?.result, { type: 'binary' });
       
       const sheetNames = workbook.SheetNames;
-      const pedidosSheetName = sheetNames.find(name => name.toLowerCase().trim() === 'pedido demissao');
-      const demitidosSheetName = sheetNames.find(name => name.toLowerCase().trim() === 'demissao empresa');
+      
+      const normalizeString = (str: string) => {
+        return str.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      }
+
+      const pedidosSheetName = sheetNames.find(name => normalizeString(name) === 'pedido de demissao');
+      const demitidosSheetName = sheetNames.find(name => normalizeString(name) === 'demissao empresa');
 
       if (!pedidosSheetName && !demitidosSheetName) {
         toast({
