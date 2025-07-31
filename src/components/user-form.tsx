@@ -23,7 +23,7 @@ import { DialogClose } from './ui/dialog';
 
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { db, app } from '@/lib/firebase'; // Import app from firebase
+import { db, app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
 
@@ -45,7 +45,7 @@ export default function UserForm() {
   async function onSubmit(data: z.infer<typeof userFormSchema>) {
     startTransition(async () => {
       try {
-        const auth = getAuth(app); // Pass the app instance
+        const auth = getAuth(app);
         const { name, email, password } = data;
         
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -67,7 +67,7 @@ export default function UserForm() {
             description: "Usuário criado com sucesso.",
         });
         form.reset();
-        router.refresh(); // Refresh the page to show the new user
+        router.refresh();
         closeRef.current?.click();
 
       } catch (error: any) {
@@ -77,6 +77,8 @@ export default function UserForm() {
             message = 'Este email já está em uso por outra conta.';
         } else if (error.code === 'auth/weak-password') {
             message = 'A senha é muito fraca. Tente uma mais forte.';
+        } else if (error.code === 'auth/configuration-not-found') {
+            message = 'Erro de configuração do Firebase. Verifique o console.';
         }
         toast({
             title: "Erro",
