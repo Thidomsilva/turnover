@@ -1,7 +1,7 @@
-import { getFirestore, collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export async function loginUser(email: string, senha: string) {
-  const db = getFirestore();
   const usersRef = collection(db, "users");
   const q = query(usersRef, where("email", "==", email), where("senha", "==", senha));
   const snapshot = await getDocs(q);
