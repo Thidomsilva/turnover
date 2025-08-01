@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEffect, useRef, useState, useTransition } from 'react';
+import { setPageLoading } from '@/lib/utils-loading';
 
 import { OverviewChart } from '@/components/overview-chart';
 import { RecentExits } from '@/components/recent-exits';
@@ -71,10 +72,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setPageLoading(true);
       try {
         const year = filterYear ? parseInt(filterYear, 10) : undefined;
         const month = filterMonth !== 'all' ? parseInt(filterMonth, 10) : undefined;
-
         const dashboardData = await getDashboardData({ year, month });
         setData(dashboardData);
       } catch (error) {
@@ -87,6 +88,7 @@ export default function DashboardPage() {
         setData(null);
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
     fetchData();
