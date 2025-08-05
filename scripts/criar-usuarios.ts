@@ -21,6 +21,7 @@ async function criarUsuarios() {
     { email: 'marlon.carvalho@eletropolar.com.br', senha: 'marlon123', nome: 'Marlon', role: 'user' },
     { email: 'karin@sagacy.com.br', senha: 'karin123', nome: 'Karin', role: 'user' },
     { email: 'marcos@sagacy.com.br', senha: 'marcos123', nome: 'Marcos', role: 'user' },
+    { email: 'larissa.eduarda@eletropolar.com.br', senha: 'larissa123', nome: 'Larissa', role: 'user' },
     { email: 'paulo@eletropolar.com.br', senha: 'paulo123', nome: 'Paulo', role: 'user' },
     { email: 'thiago@sagacy.com.br', senha: 'thiago123', nome: 'Thiago', role: 'admin' },
   ];
