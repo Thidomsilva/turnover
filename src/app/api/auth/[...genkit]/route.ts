@@ -18,13 +18,6 @@ import {v1} from 'genkit/ai';
 
 genkit({
   plugins: [googleAI()],
-  flowStateStore: 'firebase', // Persist flow state in Firestore
-  traceStore: 'firebase', // Persist traces in Firestore
-  enableTracingAndMetrics: true,
-  telemetry: {
-    instrumentation: 'google',
-    logger: 'google',
-  },
 });
 
 export async function POST(req: NextRequest) {
