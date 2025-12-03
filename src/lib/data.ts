@@ -1,18 +1,26 @@
-
 import { type ExitData } from '@/lib/types';
 import { format, subMonths, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
+const firebaseConfig = {
+  apiKey: "AIzaSyCq_Qnb-cDsWzij6bj39g-uaaKY7Ild9cw",
+  authDomain: "gesto-de-turnover.firebaseapp.com",
+  projectId: "gesto-de-turnover",
+  storageBucket: "gesto-de-turnover.appspot.com",
+  messagingSenderId: "523995517168",
+  appId: "1:523995517168:web:6479f21037d1aa8ebcb235"
+};
+
 export async function getDashboardData(filters?: { year?: number, month?: number }) {
   try {
     const exitsCollection = collection(db, 'exits');
+    // Busca todos os registros de desligamento, sem limite
     const querySnapshot = await getDocs(query(exitsCollection, orderBy('data_desligamento', 'desc')));
-    
     let allExits: ExitData[] = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      id: doc.id,
+      ...doc.data()
     } as ExitData));
 
     const originalExitsForYearFilter = [...allExits];

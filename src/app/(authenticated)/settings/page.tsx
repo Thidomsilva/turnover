@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import UserForm from "@/components/user-form";
 import { PlusCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { setPageLoading } from '@/lib/utils-loading';
 import type { User } from "@/lib/types";
 
 
@@ -26,9 +27,11 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchUsers() {
       setLoading(true);
+      setPageLoading(true);
       const userList = await getUsersAction();
       setUsers(userList);
       setLoading(false);
+      setPageLoading(false);
     }
     fetchUsers();
   }, [])

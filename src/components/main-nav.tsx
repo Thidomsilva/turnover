@@ -28,7 +28,7 @@ export function MainNav({
         </Button>
       ) : (
         <Link href="/dashboard" className="flex items-center gap-2">
-          <Icons.logo className="h-6 w-6" />
+          <img src="/logoprincipal.png" alt="Logo principal" className="h-24 w-auto" />
           <span className="hidden font-bold md:inline-block">
             Gestão de Turnover
           </span>

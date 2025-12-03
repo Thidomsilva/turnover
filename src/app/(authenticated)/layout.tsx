@@ -1,15 +1,29 @@
 
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { MainNav } from '@/components/main-nav';
 import { Search } from '@/components/search';
 import { UserNav } from '@/components/user-nav';
+import LoadingOverlay from '@/components/loading-overlay';
+import usePageLoading from '@/hooks/use-page-loading';
 
 export default function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const loading = usePageLoading();
+  const router = useRouter();
+  useEffect(() => {
+    const user = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    if (!user) {
+      router.replace("/");
+    }
+  }, [router]);
   return (
     <div className="flex flex-col min-h-screen">
+      {loading && <LoadingOverlay />}
       <div className="border-b">
         <div className="flex h-16 items-center px-4 md:px-8">
           <MainNav className="mx-6" />

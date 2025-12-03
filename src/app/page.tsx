@@ -1,11 +1,11 @@
+
 'use client';
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Layers, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -44,16 +44,13 @@ export default function LoginPage() {
     }
   }
 
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md mx-auto">
         <Card>
           <CardHeader className="space-y-1 text-center">
             <div className="flex flex-col justify-center items-center gap-4 mb-2">
-                <div className="p-3 bg-primary rounded-full text-primary-foreground">
-                    <Layers className="h-10 w-10" />
-                </div>
+                <img src="/logoprincipal.png" alt="Logo principal" className="h-48 w-auto mb-2" />
                 <CardTitle>Gestão de Turnover</CardTitle>
             </div>
             <CardDescription>
@@ -77,20 +74,20 @@ export default function LoginPage() {
                 <Label htmlFor="password">Senha</Label>
                 <Input 
                     id="password" 
-                    type="password" 
+                    type="password"
+                    placeholder="••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isPending}
                 />
                 </div>
                 <Button type="submit" className="w-full" disabled={isPending}>
-                  {isPending && <Loader2 className="animate-spin" />}
-                  Entrar
+                  {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Entrar"}
                 </Button>
             </form>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
