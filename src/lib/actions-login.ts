@@ -12,6 +12,30 @@ const allowedUsers: Omit<User, 'uid'>[] = [
         role: 'Administrador'
     },
     {
+        name: 'Marlon Carvalho',
+        email: 'marlon.carvalho@eletropolar.com.br',
+        password: 'marlon123',
+        role: 'Usuário'
+    },
+    {
+        name: 'Paulo',
+        email: 'paulo@eletropolar.com.br',
+        password: 'paulo123',
+        role: 'Usuário'
+    },
+    {
+        name: 'Larissa Eduarda',
+        email: 'larissa.eduarda@eletropolar.com.br',
+        password: 'larissa123',
+        role: 'Usuário'
+    },
+    {
+        name: 'Marcos',
+        email: 'marcos@sagacy.com.br',
+        password: 'marcos123',
+        role: 'Usuário'
+    },
+    {
         name: 'Usuário Padrão',
         email: 'usuario@sagacy.com.br',
         password: 'usuario123',
@@ -25,7 +49,7 @@ const allowedUsers: Omit<User, 'uid'>[] = [
  * @param password A senha do usuário.
  * @returns Os dados do usuário se as credenciais forem válidas, caso contrário, nulo.
  */
-export async function loginUserAction(email: string, password: string): Promise<Omit<User, 'uid'> | null> {
+export async function loginUserAction(email: string, password: string): Promise<Omit<User, 'uid' | 'password'> | null> {
   try {
     if (!email || !password) {
       return null;
