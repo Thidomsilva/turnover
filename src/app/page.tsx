@@ -40,20 +40,21 @@ export default function LoginPage() {
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
-      if (!userDocSnap.exists()) {
-        // This case is unlikely if user creation is handled correctly, but it's a good safeguard.
-        throw new Error("auth/user-data-not-found");
-      }
-      
-      const userData = userDocSnap.data();
-
-      // 3. Prepare the user object to save locally
-      const userToStore = {
+      let userToStore = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        name: userData.name, 
-        role: userData.role,
+        name: firebaseUser.displayName || 'Usuário', 
+        role: 'Usuário',
       };
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        userToStore.name = userData.name;
+        userToStore.role = userData.role;
+      } else {
+        // This case is unlikely if user creation is handled correctly, but it's a good safeguard.
+        console.warn(`User data not found in Firestore for UID: ${firebaseUser.uid}. Using default data.`);
+      }
 
       // 4. Save to localStorage to maintain the session
       if (typeof window !== "undefined") {
@@ -72,8 +73,8 @@ export default function LoginPage() {
       let message = "Ocorreu um erro no login. Verifique suas credenciais.";
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         message = "Email ou senha inválidos.";
-      } else if (error.message === 'auth/user-data-not-found') {
-        message = "Não foi possível encontrar os dados do usuário após o login."
+      } else if (error.code === 'auth/configuration-not-found') {
+         message = "Erro de configuração do Firebase. Verifique o console.";
       }
       console.error("Login error:", error.code, error.message);
       toast({
