@@ -9,9 +9,7 @@ import { Loader2 } from "lucide-react"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { loginUserAction } from "@/lib/actions-login";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -21,9 +19,8 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // If the user is already logged in (e.g., page reload), redirect to the dashboard.
     if (typeof window !== "undefined" && localStorage.getItem("user")) {
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
   }, [router]);
 
@@ -32,54 +29,33 @@ export default function LoginPage() {
     setIsPending(true);
 
     try {
-      // 1. Authenticate with Firebase Auth service
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      const user = await loginUserAction(email, password);
 
-      // 2. Fetch additional user data (name, role) from Firestore using the AUTH UID
-      const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
+      if (user) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("user", JSON.stringify(user));
+        }
+        
+        toast({
+          title: "Sucesso!",
+          description: "Login realizado com sucesso.",
+        });
 
-      let userToStore = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        name: firebaseUser.displayName || 'Usuário', 
-        role: 'Usuário',
-      };
+        router.replace('/dashboard');
 
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        userToStore.name = userData.name;
-        userToStore.role = userData.role;
       } else {
-        // This case is unlikely if user creation is handled correctly, but it's a good safeguard.
-        console.warn(`User data not found in Firestore for UID: ${firebaseUser.uid}. Using default data.`);
+        toast({
+          title: "Erro de autenticação",
+          description: "Email ou senha inválidos.",
+          variant: "destructive",
+        });
       }
-
-      // 4. Save to localStorage to maintain the session
-      if (typeof window !== "undefined") {
-        localStorage.setItem("user", JSON.stringify(userToStore));
-      }
-      
-      toast({
-        title: "Sucesso!",
-        description: "Login realizado com sucesso.",
-      });
-
-      // 5. Redirect to the dashboard
-      router.push('/dashboard');
 
     } catch (error: any) {
-      let message = "Ocorreu um erro no login. Verifique suas credenciais.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        message = "Email ou senha inválidos.";
-      } else if (error.code === 'auth/configuration-not-found') {
-         message = "Erro de configuração do Firebase. Verifique o console.";
-      }
-      console.error("Login error:", error.code, error.message);
+      console.error("Login error:", error);
       toast({
         title: "Erro de autenticação",
-        description: message,
+        description: "Ocorreu um erro no login. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -111,6 +87,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isPending}
+                    autoComplete="email"
                 />
                 </div>
                 <div className="grid gap-2">
@@ -122,6 +99,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isPending}
+                    autoComplete="current-password"
                 />
                 </div>
                 <Button type="submit" className="w-full" disabled={isPending}>
