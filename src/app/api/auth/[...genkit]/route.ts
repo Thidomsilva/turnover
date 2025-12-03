@@ -16,6 +16,8 @@ import {googleAI} from '@genkit-ai/googleai';
 import { NextRequest } from 'next/server';
 import {v1} from 'genkit/ai';
 
+// Initialize Genkit with just the Google AI plugin.
+// This avoids issues with telemetry exporters in production environments like Vercel.
 genkit({
   plugins: [googleAI()],
 });
