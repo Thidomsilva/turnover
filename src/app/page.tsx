@@ -9,8 +9,9 @@ import { Loader2 } from "lucide-react"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Se o usuário já estiver logado (ex: recarregou a página), redireciona para o dashboard.
     if (typeof window !== "undefined" && localStorage.getItem("user")) {
       router.push("/dashboard");
     }
@@ -30,30 +32,29 @@ export default function LoginPage() {
     setIsPending(true);
 
     try {
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", email.toLowerCase()));
-      const querySnapshot = await getDocs(q);
+      // 1. Autenticar com o serviço Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      if (querySnapshot.empty) {
-        throw new Error("auth/user-not-found");
-      }
+      // 2. Buscar os dados adicionais do usuário (nome, role) no Firestore
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-
-      // Este é um método inseguro de verificar senha, apenas para fins de demonstração
-      // Em produção, use o Firebase Authentication.
-      if (userData.senha !== password) {
-         throw new Error("auth/wrong-password");
+      if (!userDocSnap.exists()) {
+        throw new Error("auth/user-data-not-found");
       }
       
-      const userToStore = {
-        uid: userDoc.id,
-        email: userData.email,
-        name: userData.nome,
-        role: userData.role
-      }
+      const userData = userDocSnap.data();
 
+      // 3. Preparar o objeto do usuário para salvar localmente
+      const userToStore = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        name: userData.name, // ou userData.nome
+        role: userData.role,
+      };
+
+      // 4. Salvar no localStorage para manter a sessão
       if (typeof window !== "undefined") {
         localStorage.setItem("user", JSON.stringify(userToStore));
       }
@@ -63,13 +64,17 @@ export default function LoginPage() {
         description: "Login realizado com sucesso.",
       });
 
+      // 5. Redirecionar para o dashboard
       router.push('/dashboard');
 
     } catch (error: any) {
-      let message = "Ocorreu um erro no login.";
-      if (error.message === 'auth/user-not-found' || error.message === 'auth/wrong-password') {
+      let message = "Ocorreu um erro no login. Verifique suas credenciais.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         message = "Email ou senha inválidos.";
+      } else if (error.message === 'auth/user-data-not-found') {
+        message = "Não foi possível encontrar os dados do usuário após o login."
       }
+      console.error("Login error:", error);
       toast({
         title: "Erro de autenticação",
         description: message,
