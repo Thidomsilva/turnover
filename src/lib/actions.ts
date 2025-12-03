@@ -301,22 +301,4 @@ export async function importExitsAction(data: any[]) {
         };
     }
 }
-
-export async function getUsersAction(): Promise<User[]> {
-  try {
-    const usersCollection = collection(db, 'users');
-    // Limita para os 50 primeiros usuários para evitar lentidão
-    const { limit } = await import('firebase/firestore');
-    const querySnapshot = await getDocs(query(usersCollection, limit(50)));
-    if (querySnapshot.empty) {
-      return [];
-    }
-    const users = querySnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id }) as User);
-    return users;
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return [];
-  }
-}
-
     

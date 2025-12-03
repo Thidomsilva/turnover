@@ -1,7 +1,6 @@
 
 'use client'
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -11,24 +10,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getUsersAction } from "@/lib/actions";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import UserForm from "@/components/user-form";
-import { PlusCircle } from "lucide-react";
+import { getHardcodedUsers } from "@/lib/actions-login";
 import { useEffect, useState } from "react";
 import { setPageLoading } from '@/lib/utils-loading';
-import type { User } from "@/lib/types";
 
+// Ajustando o tipo para não esperar uid ou password
+type DisplayUser = {
+  name: string;
+  email: string;
+  role: 'Administrador' | 'Usuário';
+}
 
 export default function SettingsPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<DisplayUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUsers() {
       setLoading(true);
       setPageLoading(true);
-      const userList = await getUsersAction();
+      const userList = await getHardcodedUsers();
       setUsers(userList);
       setLoading(false);
       setPageLoading(false);
@@ -51,26 +52,9 @@ export default function SettingsPage() {
             <div>
               <CardTitle>Gerenciamento de Usuários</CardTitle>
               <CardDescription>
-                Usuários com acesso à plataforma.
+                Usuários com acesso à plataforma. Para adicionar ou remover, edite o arquivo `src/lib/actions-login.ts`.
               </CardDescription>
             </div>
-             <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle />
-                  Adicionar Usuário
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Novo Usuário</DialogTitle>
-                  <DialogDescription>
-                    Preencha os dados abaixo para criar um novo acesso.
-                  </DialogDescription>
-                </DialogHeader>
-                <UserForm />
-              </DialogContent>
-            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -91,7 +75,7 @@ export default function SettingsPage() {
                 </TableRow>
               ) : users.length > 0 ? (
                   users.map((user) => (
-                    <TableRow key={user.uid}>
+                    <TableRow key={user.email}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.role}</TableCell>

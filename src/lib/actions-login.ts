@@ -1,55 +1,62 @@
 'use server';
 
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import type { User } from "./types";
 
+// Lista de usuários permitidos codificada diretamente.
+// A senha é o primeiro nome em minúsculas + 123.
+const allowedUsers: Omit<User, 'uid'>[] = [
+    {
+        name: 'Thiago Sagacy',
+        email: 'thiago@sagacy.com.br',
+        password: 'thiago123',
+        role: 'Administrador'
+    },
+    {
+        name: 'Usuário Padrão',
+        email: 'usuario@sagacy.com.br',
+        password: 'usuario123',
+        role: 'Usuário'
+    }
+];
+
 /**
- * Logs in a user by directly checking credentials against the Firestore database.
- * NOTE: This method is intended for internal systems as it compares stored passwords.
- *
- * @param email The user's email.
- * @param password The user's password.
- * @returns The user data if credentials are valid, otherwise null.
+ * Faz o login de um usuário verificando as credenciais em uma lista codificada.
+ * @param email O email do usuário.
+ * @param password A senha do usuário.
+ * @returns Os dados do usuário se as credenciais forem válidas, caso contrário, nulo.
  */
-export async function loginUserAction(email: string, password: string): Promise<User | null> {
+export async function loginUserAction(email: string, password: string): Promise<Omit<User, 'uid'> | null> {
   try {
     if (!email || !password) {
       return null;
     }
 
-    const usersRef = collection(db, "users");
-    // Query for the user by email.
-    const q = query(usersRef, where("email", "==", email.toLowerCase()));
-    const snapshot = await getDocs(q);
+    const foundUser = allowedUsers.find(
+      user => user.email.toLowerCase() === email.toLowerCase() && user.password === password
+    );
 
-    if (snapshot.empty) {
-      console.log(`Login failed: No user found for email ${email}`);
-      return null;
-    }
-
-    const userDoc = snapshot.docs[0];
-    const userData = userDoc.data();
-
-    // Check if the password matches. The password is derived from the first name.
-    const firstName = (userData.name || '').split(' ')[0].toLowerCase();
-    const expectedPassword = `${firstName}123`;
-    
-    if (password === expectedPassword) {
-      // Login successful
-      return {
-        uid: userDoc.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-      };
+    if (foundUser) {
+      console.log(`Login successful for ${email}`);
+      // Retorna o usuário sem o UID, pois não estamos usando Firebase Auth aqui.
+      // E também sem a senha, por segurança.
+      const { password: _, ...userToReturn } = foundUser;
+      return userToReturn;
     } else {
-      // Password does not match
-      console.log(`Login failed: Incorrect password for email ${email}`);
+      console.log(`Login failed: Invalid credentials for email ${email}`);
       return null;
     }
   } catch (error) {
     console.error("Error in loginUserAction: ", error);
     return null;
   }
+}
+
+/**
+ * Retorna a lista de usuários codificados.
+ */
+export async function getHardcodedUsers(): Promise<Omit<User, 'password' | 'uid'>[]> {
+    return allowedUsers.map(u => {
+        const { password, ...user } = u;
+        return user;
+    });
 }
