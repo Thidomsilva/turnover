@@ -26,9 +26,7 @@ async function migrateUsersToAuth() {
         return;
     }
 
-    const temporaryPassword = 'nova_senha_123';
-    console.log(`\n---\nIMPORTANT: A temporary password "${temporaryPassword}" will be set for all migrated users.\nThey should change it upon first login.\n---\n`);
-
+    console.log(`\n---\nIMPORTANT: Passwords will be set based on the rule: 'firstname123'.\n---\n`);
 
     for (const userDoc of usersSnapshot.docs) {
         const userData = userDoc.data();
@@ -36,6 +34,11 @@ async function migrateUsersToAuth() {
 
         if (!email) {
             console.warn(`Skipping user document ${userDoc.id} because it has no email.`);
+            continue;
+        }
+
+        if (!name) {
+            console.warn(`Skipping user ${email} because they have no name to generate a password from.`);
             continue;
         }
 
@@ -49,14 +52,19 @@ async function migrateUsersToAuth() {
                 if (error.code === 'auth/user-not-found') {
                     // 2. If user does not exist, create them in Firebase Auth
                     console.log(`Auth user for ${email} not found. Creating...`);
+
+                    // Generate password based on the rule: first name + 123
+                    const firstName = name.split(' ')[0].toLowerCase();
+                    const password = `${firstName}123`;
+                    
                     userRecord = await auth.createUser({
                         email: email,
-                        password: temporaryPassword,
+                        password: password,
                         displayName: name,
-                        emailVerified: true,
+                        emailVerified: true, // Assuming emails are verified
                         disabled: false,
                     });
-                    console.log(`Successfully created new auth user for ${email} with UID ${userRecord.uid}`);
+                    console.log(`Successfully created new auth user for ${email} with UID ${userRecord.uid}. Password set to: ${password}`);
                 } else {
                     // Rethrow other errors
                     throw error;
