@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Se o usuário já estiver logado (ex: recarregou a página), redireciona para o dashboard.
+    // If the user is already logged in (e.g., page reload), redirect to the dashboard.
     if (typeof window !== "undefined" && localStorage.getItem("user")) {
       router.push("/dashboard");
     }
@@ -32,29 +32,30 @@ export default function LoginPage() {
     setIsPending(true);
 
     try {
-      // 1. Autenticar com o serviço Firebase Auth
+      // 1. Authenticate with Firebase Auth service
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
 
-      // 2. Buscar os dados adicionais do usuário (nome, role) no Firestore
+      // 2. Fetch additional user data (name, role) from Firestore using the AUTH UID
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (!userDocSnap.exists()) {
+        // This case is unlikely if user creation is handled correctly, but it's a good safeguard.
         throw new Error("auth/user-data-not-found");
       }
       
       const userData = userDocSnap.data();
 
-      // 3. Preparar o objeto do usuário para salvar localmente
+      // 3. Prepare the user object to save locally
       const userToStore = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        name: userData.name, // ou userData.nome
+        name: userData.name, 
         role: userData.role,
       };
 
-      // 4. Salvar no localStorage para manter a sessão
+      // 4. Save to localStorage to maintain the session
       if (typeof window !== "undefined") {
         localStorage.setItem("user", JSON.stringify(userToStore));
       }
@@ -64,7 +65,7 @@ export default function LoginPage() {
         description: "Login realizado com sucesso.",
       });
 
-      // 5. Redirecionar para o dashboard
+      // 5. Redirect to the dashboard
       router.push('/dashboard');
 
     } catch (error: any) {
@@ -74,7 +75,7 @@ export default function LoginPage() {
       } else if (error.message === 'auth/user-data-not-found') {
         message = "Não foi possível encontrar os dados do usuário após o login."
       }
-      console.error("Login error:", error);
+      console.error("Login error:", error.code, error.message);
       toast({
         title: "Erro de autenticação",
         description: message,
