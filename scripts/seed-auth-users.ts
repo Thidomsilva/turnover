@@ -17,59 +17,84 @@ if (!admin.apps.length) {
 const db = getFirestore();
 const auth = admin.auth();
 
-async function seedAuthUsers() {
-    const usuarios = [
-        { email: 'marlon.carvalho@eletropolar.com.br', senha: 'marlon123', nome: 'Marlon', role: 'user' },
-        { email: 'karin@sagacy.com.br', senha: 'karin123', nome: 'Karin', role: 'user' },
-        { email: 'marcos@sagacy.com.br', senha: 'marcos123', nome: 'Marcos', role: 'user' },
-        { email: 'larissa.eduarda@eletropolar.com.br', senha: 'larissa123', nome: 'Larissa', role: 'user' },
-        { email: 'paulo@eletropolar.com.br', senha: 'paulo123', nome: 'Paulo', role: 'user' },
-        { email: 'thiago@sagacy.com.br', senha: 'thiago123', nome: 'Thiago', role: 'admin' },
-    ];
+async function migrateUsersToAuth() {
+    console.log('Starting user migration...');
+    const usersSnapshot = await db.collection('users').get();
 
-    for (const usuario of usuarios) {
+    if (usersSnapshot.empty) {
+        console.log('No user documents found in Firestore. Nothing to migrate.');
+        return;
+    }
+
+    const temporaryPassword = 'nova_senha_123';
+    console.log(`\n---\nIMPORTANT: A temporary password "${temporaryPassword}" will be set for all migrated users.\nThey should change it upon first login.\n---\n`);
+
+
+    for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        const { email, name, role } = userData;
+
+        if (!email) {
+            console.warn(`Skipping user document ${userDoc.id} because it has no email.`);
+            continue;
+        }
+
         try {
-            // 1. Create user in Firebase Authentication
-            const userRecord = await auth.createUser({
-                email: usuario.email,
-                password: usuario.senha,
-                displayName: usuario.nome,
-                emailVerified: true,
-                disabled: false
-            });
+            // 1. Check if user already exists in Firebase Auth
+            let userRecord;
+            try {
+                userRecord = await auth.getUserByEmail(email);
+                console.log(`Auth user for ${email} already exists with UID ${userRecord.uid}. Skipping auth creation.`);
+            } catch (error: any) {
+                if (error.code === 'auth/user-not-found') {
+                    // 2. If user does not exist, create them in Firebase Auth
+                    console.log(`Auth user for ${email} not found. Creating...`);
+                    userRecord = await auth.createUser({
+                        email: email,
+                        password: temporaryPassword,
+                        displayName: name,
+                        emailVerified: true,
+                        disabled: false,
+                    });
+                    console.log(`Successfully created new auth user for ${email} with UID ${userRecord.uid}`);
+                } else {
+                    // Rethrow other errors
+                    throw error;
+                }
+            }
 
-            console.log(`Successfully created new auth user: ${userRecord.uid} (${userRecord.email})`);
+            // 3. Update the Firestore document with the correct Auth UID
+            // This ensures consistency. We use the Auth UID as the document ID.
+            if (userDoc.id !== userRecord.uid) {
+                console.log(`Firestore doc ID ${userDoc.id} does not match Auth UID ${userRecord.uid}. Re-creating doc with correct ID.`);
+                
+                // Set data in new document with correct ID
+                await db.collection('users').doc(userRecord.uid).set({
+                    ...userData,
+                    uid: userRecord.uid, // Ensure uid field is correct
+                });
 
-            // 2. Create corresponding user document in Firestore
-            const userDoc = {
-                name: usuario.nome,
-                email: usuario.email,
-                role: usuario.role,
-                uid: userRecord.uid, // Store the auth UID in the document
-            };
-            
-            // Note: We use the auth UID as the document ID for easy lookup
-            await db.collection('users').doc(userRecord.uid).set(userDoc);
-            
-            console.log(`Successfully created Firestore user doc for: ${userRecord.email}`);
+                // Delete the old document
+                await db.collection('users').doc(userDoc.id).delete();
+                console.log(`Migrated Firestore document for ${email} from ${userDoc.id} to ${userRecord.uid}.`);
+
+            } else {
+                 await db.collection('users').doc(userDoc.id).update({
+                    uid: userRecord.uid, // just ensure uid field is correct
+                });
+                console.log(`Firestore document for ${email} already has the correct ID. Ensured 'uid' field is set.`);
+            }
 
         } catch (error: any) {
-            if (error.code === 'auth/email-already-exists') {
-                console.warn(`Auth user with email ${usuario.email} already exists. Skipping auth creation.`);
-                // If user exists, you might want to update their Firestore doc, but we'll skip for this script.
-            } else {
-                console.error(`Error creating user ${usuario.email}:`, error);
-            }
+            console.error(`Failed to migrate user ${email}:`, error.message || error);
         }
     }
 }
 
-seedAuthUsers().then(() => {
-    console.log('User seeding process finished.');
+migrateUsersToAuth().then(() => {
+    console.log('\nUser migration process finished.');
     process.exit(0);
 }).catch((error) => {
-    console.error('Unhandled error during user seeding:', error);
+    console.error('\nUnhandled error during user migration:', error);
     process.exit(1);
 });
-
-    
