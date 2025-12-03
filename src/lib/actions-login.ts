@@ -31,7 +31,7 @@ export async function loginUserAction(email: string, password: string): Promise<
     const userDoc = snapshot.docs[0];
     const userData = userDoc.data();
 
-    // Check if the password matches. The password in the database is derived from the first name.
+    // Check if the password matches. The password is derived from the first name.
     const firstName = (userData.name || '').split(' ')[0].toLowerCase();
     const expectedPassword = `${firstName}123`;
     
