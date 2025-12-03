@@ -15,12 +15,14 @@ export default function AuthenticatedLayout({
 }) {
   const loading = usePageLoading();
   const router = useRouter();
+
   useEffect(() => {
     const user = typeof window !== "undefined" ? localStorage.getItem("user") : null;
     if (!user) {
       router.replace("/");
     }
   }, [router]);
+
   return (
     <div className="flex flex-col min-h-screen">
       {loading && <LoadingOverlay />}

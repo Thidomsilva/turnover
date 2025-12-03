@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
-import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,19 +19,55 @@ export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("user")) {
+      router.push("/dashboard");
+    }
+  }, [router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPending(true);
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error("auth/user-not-found");
+      }
+
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+
+      // Este é um método inseguro de verificar senha, apenas para fins de demonstração
+      // Em produção, use o Firebase Authentication.
+      if (userData.senha !== password) {
+         throw new Error("auth/wrong-password");
+      }
+      
+      const userToStore = {
+        uid: userDoc.id,
+        email: userData.email,
+        name: userData.nome,
+        role: userData.role
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("user", JSON.stringify(userToStore));
+      }
+      
       toast({
         title: "Sucesso!",
         description: "Login realizado com sucesso.",
       });
+
       router.push('/dashboard');
+
     } catch (error: any) {
       let message = "Ocorreu um erro no login.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      if (error.message === 'auth/user-not-found' || error.message === 'auth/wrong-password') {
         message = "Email ou senha inválidos.";
       }
       toast({
