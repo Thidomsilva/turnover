@@ -1,6 +1,6 @@
 
 export interface PedidoDemissao {
-  id: string;
+  id?: string;
   tipo: 'pedido_demissao';
   data_admissao: string | null;
   data_desligamento: string;
@@ -26,7 +26,7 @@ export interface PedidoDemissao {
 }
 
 export interface DemissaoEmpresa {
-  id: string;
+  id?: string;
   tipo: 'demissao_empresa';
   data_admissao: string | null;
   data_desligamento: string;

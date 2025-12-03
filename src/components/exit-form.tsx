@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { exitFormSchema } from '@/lib/schemas';
-import { addExitAction } from '@/lib/actions';
+import { addExitAction, updateExitAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import {
   Select,
@@ -27,13 +27,18 @@ import {
 } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { Loader2 } from 'lucide-react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SheetClose } from './ui/sheet';
+import { ExitData } from '@/lib/types';
 
-export default function ExitForm() {
+interface ExitFormProps {
+  exitData?: ExitData | null;
+  onFinished?: () => void;
+}
+
+export default function ExitForm({ exitData, onFinished }: ExitFormProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
-  const closeRef = React.useRef<HTMLButtonElement>(null);
 
   const form = useForm<z.infer<typeof exitFormSchema>>({
     resolver: zodResolver(exitFormSchema),
@@ -53,16 +58,54 @@ export default function ExitForm() {
     },
   });
 
+  useEffect(() => {
+    if (exitData) {
+      form.reset({
+        tipo: exitData.tipo || 'pedido_demissao',
+        nome_completo: exitData.nome_completo || '',
+        data_admissao: exitData.data_admissao ? exitData.data_admissao.split('T')[0] : '',
+        data_desligamento: exitData.data_desligamento ? exitData.data_desligamento.split('T')[0] : '',
+        lider: exitData.lider || '',
+        setor: exitData.setor || '',
+        cargo: exitData.cargo || '',
+        motivo: exitData.motivo || '',
+        nota_lideranca: exitData.nota_lideranca || 5,
+        nota_rh: exitData.nota_rh || 5,
+        nota_empresa: exitData.nota_empresa || 5,
+        comentarios: exitData.comentarios || '',
+      });
+    } else {
+        form.reset({
+            tipo: 'pedido_demissao',
+            nome_completo: '',
+            data_admissao: '',
+            data_desligamento: new Date().toISOString().split('T')[0],
+            lider: '',
+            setor: '',
+            cargo: '',
+            motivo: '',
+            nota_lideranca: 5,
+            nota_rh: 5,
+            nota_empresa: 5,
+            comentarios: '',
+        });
+    }
+  }, [exitData, form]);
+
   function onSubmit(data: z.infer<typeof exitFormSchema>) {
     startTransition(async () => {
-        const result = await addExitAction(data);
+        const action = exitData?.id ? updateExitAction(exitData.id, data) : addExitAction(data);
+        const result = await action;
+        
         if (result.success) {
             toast({
                 title: "Sucesso!",
                 description: result.message,
             });
             form.reset();
-            closeRef.current?.click();
+            if (onFinished) {
+              onFinished();
+            }
             // This is a simple way to refresh the page and show the new data.
             window.location.reload();
         } else {
@@ -84,7 +127,7 @@ export default function ExitForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Tipo de Desligamento</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo de desligamento" />
@@ -122,7 +165,7 @@ export default function ExitForm() {
                 <FormItem>
                 <FormLabel>Data de Admissão</FormLabel>
                 <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -212,7 +255,7 @@ export default function ExitForm() {
                 <FormItem>
                 <FormLabel>Nota Liderança (1-10)</FormLabel>
                 <FormControl>
-                    <Input type="number" min="1" max="10" {...field} />
+                    <Input type="number" min="1" max="10" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -225,7 +268,7 @@ export default function ExitForm() {
                 <FormItem>
                 <FormLabel>Nota RH (1-10)</FormLabel>
                 <FormControl>
-                    <Input type="number" min="1" max="10" {...field} />
+                    <Input type="number" min="1" max="10" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -238,7 +281,7 @@ export default function ExitForm() {
                 <FormItem>
                 <FormLabel>Nota Empresa (1-10)</FormLabel>
                 <FormControl>
-                    <Input type="number" min="1" max="10" {...field} />
+                    <Input type="number" min="1" max="10" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -267,9 +310,8 @@ export default function ExitForm() {
 
         <Button type="submit" disabled={isPending} className="w-full">
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar Desligamento
+            {exitData ? 'Salvar Alterações' : 'Salvar Desligamento'}
         </Button>
-        <SheetClose ref={closeRef} className="hidden" />
       </form>
     </Form>
   );

@@ -17,11 +17,11 @@ import { StatCard } from '@/components/stat-card';
 import { getDashboardData } from '@/lib/data';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2, BarChartBig, Trash2 } from 'lucide-react';
+import { FileDown, PlusCircle, Upload, FileText, BrainCircuit, Loader2, BarChartBig, Trash2, Pencil } from 'lucide-react';
 import ExitForm from '@/components/exit-form';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
-import { importExitsAction } from '@/lib/actions';
+import { deleteExitAction, importExitsAction } from '@/lib/actions';
 import {
   Dialog,
   DialogContent,
@@ -62,6 +62,9 @@ export default function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [monthlyExits, setMonthlyExits] = useState<ExitData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingExit, setEditingExit] = useState<ExitData | null>(null);
+
 
   const [filterYear, setFilterYear] = useState<string>(new Date().getFullYear().toString());
   const [filterMonth, setFilterMonth] = useState<string>('all');
@@ -192,6 +195,38 @@ export default function DashboardPage() {
     setIsModalOpen(true);
   };
 
+  const handleEditClick = (exit: ExitData) => {
+    setEditingExit(exit);
+    setIsSheetOpen(true);
+    setIsModalOpen(false); // Close the dialog if it's open
+  }
+
+  const handleAddNewClick = () => {
+    setEditingExit(null);
+    setIsSheetOpen(true);
+  }
+
+  const handleDeleteClick = async (exitId: string) => {
+    startTransition(async () => {
+        const result = await deleteExitAction(exitId);
+        if (result.success) {
+            toast({
+                title: "Sucesso!",
+                description: "Registro de desligamento excluído.",
+            });
+            // Refresh data
+            setIsModalOpen(false);
+            window.location.reload();
+        } else {
+            toast({
+                title: "Erro",
+                description: result.message || "Não foi possível excluir o registro.",
+                variant: "destructive",
+            });
+        }
+    });
+  };
+
   if (loading && !data) {
     return (
         <div className="flex items-center justify-center h-full min-h-[80vh]">
@@ -208,22 +243,25 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold mb-2">Bem-vindo à Gestão de Turnover!</h2>
           <p className="text-muted-foreground mb-6">Ainda não há dados de desligamento para exibir.</p>
            <div className="flex items-center space-x-2">
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                <Button size="lg">
+                <Button size="lg" onClick={handleAddNewClick}>
                   <PlusCircle className="mr-2 h-5 w-5" />
                   Registrar Primeiro Desligamento
                 </Button>
               </SheetTrigger>
               <SheetContent className="sm:max-w-2xl overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle>Cadastro de Desligamento</SheetTitle>
-                  <SheetDescription>
-                    Preencha os campos abaixo para registrar um novo desligamento.
+                   <SheetTitle>{editingExit ? 'Editar Desligamento' : 'Cadastro de Desligamento'}</SheetTitle>
+                   <SheetDescription>
+                    {editingExit ? 'Altere os campos abaixo para atualizar o registro.' : 'Preencha os campos abaixo para registrar um novo desligamento.'}
                   </SheetDescription>
                 </SheetHeader>
                 <div className="py-4">
-                  <ExitForm />
+                  <ExitForm 
+                    exitData={editingExit} 
+                    onFinished={() => setIsSheetOpen(false)}
+                  />
                 </div>
               </SheetContent>
             </Sheet>
@@ -266,22 +304,28 @@ export default function DashboardPage() {
                     <FileDown className="mr-2 h-4 w-4" />
                     Exportar
                 </Button>
-                <Sheet>
+                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                     <SheetTrigger asChild>
-                    <Button size="sm" disabled={loading}>
+                     <Button size="sm" onClick={handleAddNewClick} disabled={loading}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Novo Desligamento
                     </Button>
                     </SheetTrigger>
                     <SheetContent className="sm:max-w-2xl overflow-y-auto">
                     <SheetHeader>
-                        <SheetTitle>Cadastro de Desligamento</SheetTitle>
+                        <SheetTitle>{editingExit ? 'Editar Desligamento' : 'Cadastro de Desligamento'}</SheetTitle>
                         <SheetDescription>
-                        Preencha os campos abaixo para registrar um novo desligamento.
+                        {editingExit ? 'Altere os campos abaixo para atualizar o registro.' : 'Preencha os campos abaixo para registrar um novo desligamento.'}
                         </SheetDescription>
                     </SheetHeader>
                     <div className="py-4">
-                        <ExitForm />
+                        <ExitForm 
+                            exitData={editingExit} 
+                            onFinished={() => {
+                                setIsSheetOpen(false);
+                                setEditingExit(null);
+                            }}
+                        />
                     </div>
                     </SheetContent>
                 </Sheet>
@@ -443,7 +487,7 @@ export default function DashboardPage() {
       </Tabs>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Desligamentos em {selectedMonth}</DialogTitle>
             <DialogDescription>
@@ -453,7 +497,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
             {monthlyExits.length > 0 ? (
               monthlyExits.map((exit) => (
-                <div key={exit.id} className="flex items-center space-x-4 p-2 rounded-md hover:bg-secondary">
+                <div key={exit.id} className="flex items-center space-x-4 p-2 rounded-md hover:bg-secondary/50">
                   <Avatar>
                     <AvatarImage src={`https://placehold.co/40x40.png?text=${exit.nome_completo.charAt(0)}`} />
                     <AvatarFallback>{exit.nome_completo.charAt(0)}</AvatarFallback>
@@ -464,8 +508,38 @@ export default function DashboardPage() {
                       {exit.cargo}
                     </p>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground px-2 py-1 rounded-full bg-secondary">
                     {exit.tipo === 'pedido_demissao' ? 'Pedido' : 'Empresa'}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(exit)} disabled={isPending}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" disabled={isPending}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro de desligamento de <span className="font-bold">{exit.nome_completo}</span>.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteClick(exit.id!)}
+                            className="bg-destructive hover:bg-destructive/90"
+                            disabled={isPending}
+                          >
+                            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : "Excluir"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               ))
@@ -478,5 +552,3 @@ export default function DashboardPage() {
     </>
   );
 }
-
-    

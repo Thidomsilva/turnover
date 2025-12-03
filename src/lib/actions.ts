@@ -6,7 +6,7 @@ import type { PedidoDemissao, User } from './types';
 import { exitFormSchema } from './schemas';
 import { z } from 'zod';
 import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
 
@@ -101,6 +101,78 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
         }
     }
 }
+
+export async function updateExitAction(id: string, data: z.infer<typeof exitFormSchema>) {
+    const validatedFields = exitFormSchema.safeParse(data);
+
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: "Campos inválidos. Falha ao atualizar.",
+        };
+    }
+
+    try {
+        const exitRef = doc(db, 'exits', id);
+        
+        const { data_admissao, data_desligamento, ...rest } = validatedFields.data;
+        
+        let tenureInDays = null;
+        if (data_admissao && data_desligamento) {
+            const admissionDate = parseISO(data_admissao);
+            const exitDate = parseISO(data_desligamento);
+            if(isValid(admissionDate) && isValid(exitDate)) {
+               tenureInDays = differenceInDays(exitDate, admissionDate);
+            }
+        }
+
+        await updateDoc(exitRef, {
+            ...rest,
+            data_admissao,
+            data_desligamento,
+            tempo_empresa: tenureInDays,
+        });
+
+        revalidatePath('/dashboard');
+        
+        return {
+            success: true,
+            message: "Registro atualizado com sucesso.",
+        };
+
+    } catch (error: any) {
+        console.error("Error updating document: ", error);
+        return {
+             success: false,
+             message: error.message || "Ocorreu um erro ao atualizar o registro.",
+        }
+    }
+}
+
+export async function deleteExitAction(id: string) {
+    try {
+        if (!id) {
+            return { success: false, message: "ID do registro não fornecido." };
+        }
+        const exitRef = doc(db, 'exits', id);
+        await deleteDoc(exitRef);
+
+        revalidatePath('/dashboard');
+
+        return {
+            success: true,
+            message: "Registro excluído com sucesso.",
+        };
+    } catch (error: any) {
+        console.error("Error deleting document: ", error);
+        return {
+            success: false,
+            message: "Ocorreu um erro ao excluir o registro.",
+        };
+    }
+}
+
 
 function excelDateToYYYYMMDD(serial: any): string | null {
     if (!serial) return null;
