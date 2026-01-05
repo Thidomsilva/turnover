@@ -49,6 +49,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ExitsBySectorChart } from '@/components/exits-by-sector-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ExitReasonsChart } from '@/components/exit-reasons-chart';
+import { AiInsightsCard } from '@/components/ai-insights-card';
 
 
 type DashboardData = Awaited<ReturnType<typeof getDashboardData>>;
@@ -373,7 +374,7 @@ export default function DashboardPage() {
                 Relatórios
             </TabsTrigger>
             <TabsTrigger value="analytics">
-                Análise Preditiva
+                Análise com IA
             </TabsTrigger>
         </TabsList>
         
@@ -468,23 +469,7 @@ export default function DashboardPage() {
           </Card>
         </TabsContent>
         <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Análise Preditiva de Turnover</CardTitle>
-              <CardDescription>
-                Utilize IA para prever quais colaboradores têm maior risco de saída.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
-                <BrainCircuit className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">Em breve</h3>
-                <p className="text-muted-foreground">
-                  Estamos trabalhando para trazer recursos de análise preditiva e identificar tendências de turnover.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <AiInsightsCard />
         </TabsContent>
       </Tabs>
 
@@ -554,3 +539,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    
