@@ -2,16 +2,17 @@
 'use server';
 
 import { generateExitInsights, type ExitDataInput } from '@/ai/flows/generate-exit-insights';
-import type { PedidoDemissao, User } from './types';
+import type { PedidoDemissao } from './types';
 import { exitFormSchema } from './schemas';
 import { z } from 'zod';
-import { db } from './firebase';
-import { collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, writeBatch, doc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore/lite';
 import { revalidatePath } from 'next/cache';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
+import { getDb } from './firebase-admin';
 
 export async function getAiInsights() {
   try {
+    const db = getDb();
     const exitsCollection = collection(db, 'exits');
     const q = query(exitsCollection, where('tipo', '==', 'pedido_demissao'));
     const querySnapshot = await getDocs(q);
@@ -75,8 +76,8 @@ export async function addExitAction(data: z.infer<typeof exitFormSchema>) {
                tenureInDays = differenceInDays(exitDate, admissionDate);
             }
         }
-
-
+        
+        const db = getDb();
         const exitsCollection = collection(db, 'exits');
         await addDoc(exitsCollection, {
             ...rest,
@@ -114,6 +115,7 @@ export async function updateExitAction(id: string, data: z.infer<typeof exitForm
     }
 
     try {
+        const db = getDb();
         const exitRef = doc(db, 'exits', id);
         
         const { data_admissao, data_desligamento, ...rest } = validatedFields.data;
@@ -155,6 +157,7 @@ export async function deleteExitAction(id: string) {
         if (!id) {
             return { success: false, message: "ID do registro não fornecido." };
         }
+        const db = getDb();
         const exitRef = doc(db, 'exits', id);
         await deleteDoc(exitRef);
 
@@ -209,6 +212,7 @@ export async function importExitsAction(data: any[]) {
         return { success: false, message: 'Nenhum dado para importar.' };
     }
 
+    const db = getDb();
     const batch = writeBatch(db);
     const exitsCollection = collection(db, 'exits');
     let count = 0;

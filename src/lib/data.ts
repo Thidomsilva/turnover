@@ -1,23 +1,19 @@
-import { type ExitData } from '@/lib/types';
-import { format, subMonths, parseISO, isValid } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from './firebase';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCq_Qnb-cDsWzij6bj39g-uaaKY7Ild9cw",
-  authDomain: "gesto-de-turnover.firebaseapp.com",
-  projectId: "gesto-de-turnover",
-  storageBucket: "gesto-de-turnover.appspot.com",
-  messagingSenderId: "523995517168",
-  appId: "1:523995517168:web:6479f21037d1aa8ebcb235"
-};
+'use server';
+
+import { type ExitData } from '@/lib/types';
+import { format, parseISO, isValid } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore/lite';
+import { getDb } from './firebase-admin';
+
 
 export async function getDashboardData(filters?: { year?: number, month?: number }) {
   try {
+    const db = getDb();
     const exitsCollection = collection(db, 'exits');
-    // Busca todos os registros de desligamento, sem limite
     const querySnapshot = await getDocs(query(exitsCollection, orderBy('data_desligamento', 'desc')));
+    
     let allExits: ExitData[] = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -25,7 +21,6 @@ export async function getDashboardData(filters?: { year?: number, month?: number
 
     const originalExitsForYearFilter = [...allExits];
 
-    // Apply filters
     if (filters?.year) {
       allExits = allExits.filter(exit => {
         if (!exit.data_desligamento || !isValid(parseISO(exit.data_desligamento))) return false;
@@ -68,7 +63,6 @@ export async function getDashboardData(filters?: { year?: number, month?: number
         ? totalTenureInDays / tenureDataInDays.length
         : 0;
     
-    // Convert average tenure from days to months for display
     const avgTenure = Math.round(avgTenureInDays / 30);
 
     const yearForChart = filters?.year || new Date().getFullYear();
@@ -141,7 +135,6 @@ export async function getDashboardData(filters?: { year?: number, month?: number
     };
   } catch (error) {
     console.error("Failed to fetch and process dashboard data:", error);
-    // In case of error, return a default empty state
     return {
       totalExits: 0,
       totalPedidos: 0,

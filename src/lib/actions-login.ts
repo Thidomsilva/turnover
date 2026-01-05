@@ -1,6 +1,9 @@
+
 'use server';
 
 import type { User } from "./types";
+import { getDb } from "./firebase-admin";
+import { collection, getDocs } from "firebase/firestore/lite";
 
 // Lista de usuários permitidos codificada diretamente.
 // A senha é o primeiro nome em minúsculas + 123.
@@ -61,8 +64,6 @@ export async function loginUserAction(email: string, password: string): Promise<
 
     if (foundUser) {
       console.log(`Login successful for ${email}`);
-      // Retorna o usuário sem o UID, pois não estamos usando Firebase Auth aqui.
-      // E também sem a senha, por segurança.
       const { password: _, ...userToReturn } = foundUser;
       return userToReturn;
     } else {
