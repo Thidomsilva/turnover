@@ -10,7 +10,7 @@ let adminAuth: Auth;
 function getServiceAccount() {
   const serviceAccountStr = process.env.SERVICE_ACCOUNT_KEY;
   if (!serviceAccountStr) {
-    throw new Error('A variável de ambiente SERVICE_ACCOUNT_KEY não está definida. Verifique seu arquivo .env ou as configurações da Vercel.');
+    throw new Error('A variável de ambiente SERVICE_ACCOUNT_KEY não está definida. Verifique suas configurações de ambiente.');
   }
   try {
     return JSON.parse(serviceAccountStr);
@@ -21,23 +21,15 @@ function getServiceAccount() {
 }
 
 if (getApps().length === 0) {
-  try {
     adminApp = initializeApp({
       credential: cert(getServiceAccount()),
     });
-  } catch (error) {
-     console.error("Falha ao inicializar o Firebase Admin SDK", error);
-     // Em um cenário de falha, inicializamos os stubs para evitar que o app quebre completamente,
-     // mas nenhuma operação de banco de dados funcionará.
-     adminDb = {} as Firestore;
-     adminAuth = {} as Auth;
-  }
 } else {
   adminApp = getApp();
 }
 
-if (!adminDb) adminDb = getFirestore(adminApp);
-if (!adminAuth) adminAuth = getAuth(adminApp);
+adminDb = getFirestore(adminApp);
+adminAuth = getAuth(adminApp);
 
 export const getDb = () => adminDb;
 export const getAuthAdmin = () => adminAuth;
